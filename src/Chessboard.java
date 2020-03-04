@@ -88,12 +88,12 @@ public class Chessboard {
         return cnt;
     }
 
-    private int failAndPublishMineBoard() {
+    private int endAndPublishMineBoard(int state) {
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
             if (this.playerBoard[i][j] == FLAG && !this.mineBoard[i][j]) this.playerBoard[i][j] = NOT_MINE;
             else if (this.playerBoard[i][j] == UNCHECKED && this.mineBoard[i][j]) this.playerBoard[i][j] = MINE;
         }
-        return this.state = FAIL;
+        return this.state = state;
     }
 
     public List<Pair<Integer, Integer>> getAround(int x, int y) {
@@ -115,11 +115,18 @@ public class Chessboard {
         return around;
     }
 
+    public int getChessBoardState() {
+        return this.state;
+    }
+
     public int uncover(int x, int y) {
         if (this.state != PROCESS || !this.isXYLegal(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
 
         if (this.mineBoard == null) this.initRandomMineBoard(x, y);
-        if (this.mineBoard[x][y]) return this.failAndPublishMineBoard();
+        if (this.mineBoard[x][y]) {
+            this.playerBoard[x][y] = NOT_MINE;
+            return this.endAndPublishMineBoard(FAIL);
+        }
 
         Queue<Pair<Integer, Integer>> queue = new LinkedList<>();
         queue.offer(new Pair<>(x, y));
@@ -138,7 +145,7 @@ public class Chessboard {
                 if (this.playerBoard[px][py] == UNCHECKED) queue.offer(new Pair<>(px, py));
             }
         }
-        if (this.clearCellLeft == 0) this.state = SUCCESS;
+        if (this.clearCellLeft == 0) this.endAndPublishMineBoard(SUCCESS);
         return this.state;
     }
 
@@ -193,7 +200,7 @@ public class Chessboard {
                 this.playerBoard[px][py] = NOT_MINE;
             }
         }
-        if (fail) return this.failAndPublishMineBoard();
+        if (fail) return this.endAndPublishMineBoard(FAIL);
 
         for (Pair<Integer, Integer> point : around) this.uncover(point.getKey(), point.getValue());
         return this.state;

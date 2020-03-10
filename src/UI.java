@@ -8,13 +8,17 @@ import java.util.List;
 
 public class UI extends JFrame {
 
+    private static final int INFO_HEIGHT = 30;
+
     private int row, col, mineCount;
-    boolean cheat;
+    private boolean cheat;
     private Chessboard game;
+    private AI ai;
 
     private int cellLength;
     private BoardCanvas canvas;
     private JMenuBar menuBar;
+    private JButton faceButton;
 
     public UI() {
         this.setTitle("Minesweeper");
@@ -60,6 +64,10 @@ public class UI extends JFrame {
         cheatMenu.add(mineMenuItem);
         cheatMenu.add(luckyMenuItem);
         cheatMenu.add(unluckyMenuItem);
+
+
+        JMenuItem sweepBasicallyMenuItem = new JMenuItem("简易扫扫");
+        aiMenu.add(sweepBasicallyMenuItem);
 
         JMenuItem aboutMenuItem         = new JMenuItem("作者: 蟹恼板");
         aboutMenu.add(aboutMenuItem);
@@ -115,7 +123,8 @@ public class UI extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 try {
                     cellLength = Integer.parseInt(JOptionPane.showInputDialog("格子大小设置", String.valueOf(cellLength)));
-                    setSize(col * cellLength + 16 + 10, row * cellLength + menuBar.getPreferredSize().height + 39 + 10);
+                    setFrameSize();
+                    setFaceButton();
                     canvas.requestRepaintAll();
                 }
                 catch (Exception ex) {}
@@ -133,7 +142,31 @@ public class UI extends JFrame {
             }
         });
 
+        sweepBasicallyMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                AI.sweepBasically(game);
+                canvas.repaint();
+                if (game.getChessBoardState() == Chessboard.SUCCESS) {
+                    faceButton.setText("V");
+                }
+                else if (game.getChessBoardState() == Chessboard.FAIL) {
+                    faceButton.setText("X");
+                }
+            }
+        });
+
         this.setJMenuBar(menuBar);
+
+        this.faceButton = new JButton("-");
+        this.add(this.faceButton);
+
+        this.faceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                initGame(row, col, mineCount, cheat);
+            }
+        });
     }
 
     private void initGame(int row, int col, int mineCount, boolean cheat) {
@@ -143,11 +176,21 @@ public class UI extends JFrame {
         this.cheat = cheat;
         this.game = new Chessboard(this.row, this.col, this.mineCount);
 
-        this.setSize(this.col * this.cellLength + 16 + 10, this.row * this.cellLength + menuBar.getPreferredSize().height + 39 + 10);
+        this.setFrameSize();
+        this.setFaceButton();
 
         if (canvas != null) this.remove(canvas);
         this.canvas = new BoardCanvas();
         this.add(canvas);
+    }
+
+    private void setFrameSize() {
+        this.setSize(this.col * this.cellLength + 16 + 10, this.row * this.cellLength + this.menuBar.getPreferredSize().height + 39 + 10 + INFO_HEIGHT);
+    }
+
+    private void setFaceButton() {
+        this.faceButton.setBounds(10 + this.cellLength * this.col / 2 - 15, 5, 60, 30);
+        this.faceButton.setText("o");
     }
 
     private class BoardCanvas extends Canvas implements MouseMotionListener, MouseListener {
@@ -169,7 +212,7 @@ public class UI extends JFrame {
             this.mouseLeft = this.mouseRight = this.mouseBoth = false;
             this.font = new Font("Consolas",Font.BOLD, cellLength);
 
-            this.setBounds(10, 10, col * cellLength, row * cellLength);
+            this.setBounds(10, 10 + INFO_HEIGHT, col * cellLength, row * cellLength);
             this.addMouseListener(this);
             this.addMouseMotionListener(this);
         }
@@ -260,10 +303,10 @@ public class UI extends JFrame {
             int fontWidth1 = fm.stringWidth(s1);
             int fontWidth2 = fm.stringWidth(s2);
             int fontHeight = fm.getHeight();
+            g.setColor(Color.RED);
+            g.drawString(s2, px + (cellLength - fontWidth2 / 2) / 2, py + (int)(cellLength + fontHeight / 4.5) / 2);
             g.setColor(Color.BLACK);
             g.drawString(s1, px + (cellLength - fontWidth1) / 2, py + (cellLength + fontHeight) / 2);
-            g.setColor(Color.RED);
-            g.drawString(s2, px + (cellLength - fontWidth2 / 2) / 2, py + (cellLength + fontHeight / 4) / 2);
         }
         private void drawQuestionOfCell(int px, int py, Graphics2D g) {
             String s = "¿";
@@ -297,6 +340,7 @@ public class UI extends JFrame {
 
         public void requestRepaintAll() {
             this.setSize(col * cellLength, row * cellLength);
+            this.font = new Font("Consolas",Font.BOLD, cellLength);
             this.buffer = null;
             this.lastPlayerBoard = null;
             this.repaint();
@@ -317,6 +361,8 @@ public class UI extends JFrame {
 
         @Override
         public void mousePressed(MouseEvent e) {
+            if (game.getChessBoardState() != Chessboard.PROCESS) return;
+            faceButton.setText("O");
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) this.mouseLeft = true;
@@ -327,6 +373,7 @@ public class UI extends JFrame {
 
         @Override
         public void mouseReleased(MouseEvent e) {
+            faceButton.setText("o");
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) {
@@ -342,8 +389,11 @@ public class UI extends JFrame {
             if (!this.mouseLeft && !this.mouseRight) this.mouseBoth = false;
             this.repaint();
 
-            if (game.getChessBoardState() != Chessboard.PROCESS) {
-                JOptionPane.showMessageDialog(null, game.getChessBoardState() == Chessboard.SUCCESS ? "牛啤嗷" : "滑稽");
+            if (game.getChessBoardState() == Chessboard.SUCCESS) {
+                faceButton.setText("V");
+            }
+            else if (game.getChessBoardState() == Chessboard.FAIL) {
+                faceButton.setText("X");
             }
         }
 

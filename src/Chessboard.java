@@ -216,6 +216,10 @@ public class Chessboard {
         return this.state;
     }
 
+    public int getRow() { return this.row; }
+    public int getCol() { return this.col; }
+    public int getMineCount() { return this.mineCount; }
+
     public int getPlayerBoard(int x, int y) {
         return this.playerBoard[x][y];
     }

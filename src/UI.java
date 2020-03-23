@@ -11,7 +11,7 @@ public class UI extends JFrame {
     private static final int INFO_HEIGHT = 30;
 
     private int row, col, mineCount;
-    private boolean cheat;
+    private boolean cheat, showMine;
     private Chessboard game;
     private AI ai;
 
@@ -26,7 +26,8 @@ public class UI extends JFrame {
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.getContentPane().setBackground(new Color(200, 200, 200));
-        this.cellLength = 24;
+        this.cellLength = 28;
+        this.showMine = false;
         this.initMenu();
         this.initGame(9, 9, 10, false);
         this.setVisible(true);
@@ -53,14 +54,17 @@ public class UI extends JFrame {
         gameMenu.add(cellLengthMenuItem);
 
         JMenuItem cheatMenuItem         = new JMenuItem("启用作弊");
-        JMenuItem mineMenuItem          = new JMenuItem("查看地雷");
+        JMenuItem undoMenuItem          = new JMenuItem("撤销操作");
+        JMenuItem mineMenuItem          = new JMenuItem("启用透视");
         JMenuItem luckyMenuItem         = new JMenuItem("欧皇模式");
         JMenuItem unluckyMenuItem       = new JMenuItem("非酋模式");
         cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
+        undoMenuItem.setEnabled(cheat);
         mineMenuItem.setEnabled(cheat);
         luckyMenuItem.setEnabled(cheat);
         unluckyMenuItem.setEnabled(cheat);
         cheatMenu.add(cheatMenuItem);
+        cheatMenu.add(undoMenuItem);
         cheatMenu.add(mineMenuItem);
         cheatMenu.add(luckyMenuItem);
         cheatMenu.add(unluckyMenuItem);
@@ -134,11 +138,35 @@ public class UI extends JFrame {
         cheatMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会启用新局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
+                if (res != 0) return;
                 cheat = !cheat;
+                if (!cheat) showMine = false;
                 cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
+                undoMenuItem.setEnabled(cheat);
                 mineMenuItem.setEnabled(cheat);
                 luckyMenuItem.setEnabled(cheat);
                 unluckyMenuItem.setEnabled(cheat);
+                initGame(row, col, mineCount, cheat);
+            }
+        });
+        undoMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                game.undo();
+                canvas.repaint();
+            }
+        });
+        mineMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!cheat) showMine = false;
+                else {
+                    showMine = !showMine;
+                    mineMenuItem.setText((showMine? "关闭" : "启用") + "透视");
+                    game.setShowMine(showMine);
+                    canvas.repaint();
+                }
             }
         });
 
@@ -159,6 +187,7 @@ public class UI extends JFrame {
         this.setJMenuBar(menuBar);
 
         this.faceButton = new JButton("-");
+        this.faceButton.setMargin(new Insets(0,0,0,0));
         this.add(this.faceButton);
 
         this.faceButton.addActionListener(new ActionListener() {
@@ -174,7 +203,8 @@ public class UI extends JFrame {
         this.col = col;
         this.mineCount = mineCount;
         this.cheat = cheat;
-        this.game = new Chessboard(this.row, this.col, this.mineCount);
+        this.game = new Chessboard(this.row, this.col, this.mineCount, this.cheat);
+        this.game.setShowMine(this.showMine);
 
         this.setFrameSize();
         this.setFaceButton();
@@ -189,7 +219,7 @@ public class UI extends JFrame {
     }
 
     private void setFaceButton() {
-        this.faceButton.setBounds(10 + this.cellLength * this.col / 2 - 15, 5, 60, 30);
+        this.faceButton.setBounds(10 + this.cellLength * this.col / 2 - 15, 5, 30, 30);
         this.faceButton.setText("o");
     }
 
@@ -224,16 +254,16 @@ public class UI extends JFrame {
             g.setFont(this.font);
 
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
-                if (this.lastPlayerBoard == null || this.lastPlayerBoard[i][j] != game.getPlayerBoard(i, j))
+                if (this.lastPlayerBoard == null || this.lastPlayerBoard[i][j] != game.getPlayerBoard(i, j, true))
                     this.drawCell(i, j, false, g);
             }
-            this.lastPlayerBoard = game.getPlayerBoard();
+            this.lastPlayerBoard = game.getPlayerBoard(true);
 
             List<Pair<Integer, Integer>> around = new ArrayList<>();
             if (this.mouseLeft && this.mouseRight) {
                 around = game.getAround(this.mouseX, this.mouseY);
             }
-            if ((this.mouseLeft || this.mouseRight)) {
+            if ((this.mouseLeft || this.mouseRight) && game.isXYLegal(this.mouseX, this.mouseY)) {
                 around.add(new Pair<>(this.mouseX, this.mouseY));
             }
             for (Pair<Integer, Integer> xy : around) {
@@ -244,13 +274,14 @@ public class UI extends JFrame {
         }
 
         private void drawCell(int x, int y, boolean pressed, Graphics2D g) {
-            int state = game.getPlayerBoard(x, y);
+            int state = game.getPlayerBoard(x, y, true);
             int px = this.idxYToPosX(y);
             int py = this.idxXToPosY(x);
 
             if (state < 0 || state > 8) {
-                if (pressed && state == Chessboard.UNCHECKED) {
+                if (pressed && (state == Chessboard.UNCHECKED || state == Chessboard.GRAY_MINE)) {
                     this.drawPressedVoidCell(px, py, g);
+                    if (state == Chessboard.GRAY_MINE) this.drawMineOfCell(px, py, new Color(166, 166, 166), g);
                 }
                 else {
                     g.setColor(new Color(253, 253, 253));
@@ -272,6 +303,7 @@ public class UI extends JFrame {
                         case Chessboard.MINE: this.drawMineOfCell(px, py, Color.BLACK, g); break;
                         case Chessboard.NOT_MINE: this.drawMineOfCell(px, py, Color.BLACK, g); this.drawNotOfCell(px, py, g); break;
                         case Chessboard.RED_MINE: this.drawMineOfCell(px, py, Color.RED, g); break;
+                        case Chessboard.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
                     }
                 }
             }

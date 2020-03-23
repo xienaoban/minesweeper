@@ -8,20 +8,21 @@ public class Chessboard {
     public static final int PROCESS = 0;
 
     // state of player's board
-    public static final int UNCHECKED = -1;
+    public static final int UNCHECKED = 11;
     public static final int FLAG = 101;
     public static final int QUESTION = 102;
     public static final int MINE = 111;
     public static final int NOT_MINE = 112;
     public static final int RED_MINE = 113;
+    public static final int GRAY_MINE = 114;
 
     private int state;
 
-    private boolean cheat;
+    private boolean cheat, showMine;
     private int row, col;
     private int mineCount;
     private boolean[][] mineBoard;
-    private int[][] playerBoard;
+    private int[][] playerBoard, lastPlayerBoard;
     private int clearCellLeft;
 
     public Chessboard(int row, int col, int mineCount) {
@@ -46,10 +47,12 @@ public class Chessboard {
         this.col = col;
         this.mineCount = mineCount;
         this.cheat = cheat;
+        this.showMine = false;
         this.mineBoard = mineBoard;
         this.playerBoard = new int[this.row][this.col];
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j)
             this.playerBoard[i][j] = UNCHECKED;
+        this.lastPlayerBoard = null;
         this.clearCellLeft = this.row * this.col - this.mineCount;
     }
 
@@ -65,10 +68,6 @@ public class Chessboard {
             int iy = list.get(i) % this.col;
             this.mineBoard[ix][iy] = true;
         }
-    }
-
-    private boolean isXYLegal(int x, int y) {
-        return x >= 0 && x < this.row && y >= 0 && y < this.col;
     }
 
     private int calculateValue(int x, int y) {
@@ -96,31 +95,24 @@ public class Chessboard {
         return this.state = state;
     }
 
-    public List<Pair<Integer, Integer>> getAround(int x, int y) {
-        List<Pair<Integer, Integer>> around = new ArrayList<>();
-        if (!isXYLegal(x, y)) return around;
-
-        boolean up    = x - 1 >= 0;
-        boolean down  = x + 1 < this.row;
-        boolean left  = y - 1 >= 0;
-        boolean right = y + 1 < this.col;
-        if (up && left)     around.add(new Pair<>(x - 1, y - 1));
-        if (up)             around.add(new Pair<>(x - 1, y    ));
-        if (up && right)    around.add(new Pair<>(x - 1, y + 1));
-        if (left)           around.add(new Pair<>(x    , y - 1));
-        if (right)          around.add(new Pair<>(x    , y + 1));
-        if (down && left)   around.add(new Pair<>(x + 1, y - 1));
-        if (down)           around.add(new Pair<>(x + 1, y    ));
-        if (down && right)  around.add(new Pair<>(x + 1, y + 1));
-        return around;
+    private void recordLastPlayerBoard() {
+        this.lastPlayerBoard = this.getPlayerBoard();
     }
 
-    public int getChessBoardState() {
-        return this.state;
+    public void undo() {
+        if (!this.cheat || this.lastPlayerBoard == null) return;
+        this.playerBoard = this.lastPlayerBoard;
+        this.lastPlayerBoard = null;
+        this.state = PROCESS;
+        this.clearCellLeft = this.row * this.col - this.mineCount;
+        for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
+            if (this.playerBoard[i][j] < 9) --this.clearCellLeft;
+        }
     }
 
     public int uncover(int x, int y) {
         if (this.state != PROCESS || !this.isXYLegal(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
+        this.recordLastPlayerBoard();
 
         if (this.mineBoard == null) this.initRandomMineBoard(x, y);
         if (this.mineBoard[x][y]) {
@@ -151,27 +143,37 @@ public class Chessboard {
 
     public int setFlag(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION))
+        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
+            this.recordLastPlayerBoard();
             this.playerBoard[x][y] = FLAG;
+        }
         return this.state;
     }
 
     public int unsetFlag(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == FLAG) this.playerBoard[x][y] = UNCHECKED;
+        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == FLAG) {
+            this.recordLastPlayerBoard();
+            this.playerBoard[x][y] = UNCHECKED;
+        }
         return this.state;
     }
 
     public int setQuestion(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG))
+        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG)) {
+            this.recordLastPlayerBoard();
             this.playerBoard[x][y] = QUESTION;
+        }
         return this.state;
     }
 
     public int unsetQuestion(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == QUESTION) this.playerBoard[x][y] = UNCHECKED;
+        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == QUESTION) {
+            this.recordLastPlayerBoard();
+            this.playerBoard[x][y] = UNCHECKED;
+        }
         return this.state;
     }
 
@@ -186,6 +188,7 @@ public class Chessboard {
             if (this.playerBoard[point.getKey()][point.getValue()] == FLAG) ++flagCount;
         }
         if (flagCount != this.playerBoard[x][y]) return this.state;
+        this.recordLastPlayerBoard();
 
         boolean fail = false;
         for (Pair<Integer, Integer> point : around) {
@@ -208,7 +211,7 @@ public class Chessboard {
 
     public int cycFlagAndQuestion(int x, int y) {
         if (this.state != PROCESS || !this.isXYLegal(x, y)) return this.state;
-        switch (this.getPlayerBoard(x, y)) {
+        switch (this.playerBoard[x][y]) {
             case UNCHECKED: this.setFlag(x, y); break;
             case FLAG: this.setQuestion(x, y); break;
             case QUESTION: this.unsetQuestion(x, y); break;
@@ -216,33 +219,68 @@ public class Chessboard {
         return this.state;
     }
 
+    public int getChessBoardState() { return this.state; }
     public int getRow() { return this.row; }
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
 
-    public int getPlayerBoard(int x, int y) {
+    public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
+    public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {
+        if (showMineIfAllowed && this.cheat && this.showMine && this.getMineBoard(x, y) && this.playerBoard[x][y] == UNCHECKED) return GRAY_MINE;
         return this.playerBoard[x][y];
     }
 
-    public int[][] getPlayerBoard() {
+    public int[][] getPlayerBoard() { return this.getPlayerBoard(false); }
+    public int[][] getPlayerBoard(boolean showMineIfAllowed) {
         int[][] board = new int[this.row][this.col];
         for (int i = 0; i < this.row; ++i)
             if (this.col >= 0) System.arraycopy(this.playerBoard[i], 0, board[i], 0, this.col);
+        if (showMineIfAllowed && this.cheat && this.showMine) {
+            for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
+                if (this.getMineBoard(i, j) && board[i][j] == UNCHECKED) board[i][j] = GRAY_MINE;
+            }
+        }
         return board;
     }
 
     public boolean getMineBoard(int x, int y) {
-        if (this.cheat) return this.mineBoard[x][y];
+        if (this.cheat && this.mineBoard != null) return this.mineBoard[x][y];
         return false;
     }
 
     public boolean[][] getMineBoard() {
-        if (!this.cheat) return null;
+        if (!this.cheat || this.mineBoard == null) return null;
         boolean[][] board = new boolean[this.row][this.col];
         for (int i = 0; i < this.row; ++i)
             if (this.col >= 0) System.arraycopy(this.mineBoard[i], 0, board[i], 0, this.col);
         return board;
     }
+
+    public List<Pair<Integer, Integer>> getAround(int x, int y) {
+        List<Pair<Integer, Integer>> around = new ArrayList<>();
+        if (!isXYLegal(x, y)) return around;
+
+        boolean up    = x - 1 >= 0;
+        boolean down  = x + 1 < this.row;
+        boolean left  = y - 1 >= 0;
+        boolean right = y + 1 < this.col;
+        if (up && left)     around.add(new Pair<>(x - 1, y - 1));
+        if (up)             around.add(new Pair<>(x - 1, y    ));
+        if (up && right)    around.add(new Pair<>(x - 1, y + 1));
+        if (left)           around.add(new Pair<>(x    , y - 1));
+        if (right)          around.add(new Pair<>(x    , y + 1));
+        if (down && left)   around.add(new Pair<>(x + 1, y - 1));
+        if (down)           around.add(new Pair<>(x + 1, y    ));
+        if (down && right)  around.add(new Pair<>(x + 1, y + 1));
+        return around;
+    }
+
+    public boolean isXYLegal(int x, int y) {
+        return x >= 0 && x < this.row && y >= 0 && y < this.col;
+    }
+
+    public void setShowMine(boolean flag) { if (cheat) this.showMine = flag; }
+    public boolean getShowMine() { return this.showMine; }
 
     public void printMineBoardToConsole() {
         if (!this.cheat || this.mineBoard == null) System.out.println("null");

@@ -8,7 +8,7 @@
   <component name="ChangeListManager">
     <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/Chessboard.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/Chessboard.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$2.class" afterDir="false" />
@@ -17,6 +17,8 @@
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$5.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$6.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$6.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$7.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$7.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$8.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$8.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$9.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$9.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Chessboard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Chessboard.java" afterDir="false" />
@@ -126,7 +128,8 @@
       <workItem from="1583372844059" duration="4904000" />
       <workItem from="1583406990032" duration="3470000" />
       <workItem from="1583734092990" duration="4855000" />
-      <workItem from="1583805790695" duration="4414000" />
+      <workItem from="1583805790695" duration="4489000" />
+      <workItem from="1584927957518" duration="11749000" />
     </task>
     <servers />
   </component>

@@ -117,6 +117,7 @@ public class UI extends JFrame {
                     if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("你丫是不是数学不好¿");
                     initGame(r, c, m, cheat);
                 }
+                catch (NullPointerException ex) {}
                 catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
                 }
@@ -131,7 +132,10 @@ public class UI extends JFrame {
                     setFaceButton();
                     canvas.requestRepaintAll();
                 }
-                catch (Exception ex) {}
+                catch (NumberFormatException ex) {}
+                catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "格式错误，请输入合法的整数。", "错误",JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -180,6 +184,17 @@ public class UI extends JFrame {
                 }
                 else if (game.getChessBoardState() == Chessboard.FAIL) {
                     faceButton.setText("X");
+                }
+            }
+        });
+
+        aboutMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban"));
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "浏览器打开失败，请手动访问 https://github.com/XieNaoban 。", "错误",JOptionPane.ERROR_MESSAGE);
                 }
             }
         });

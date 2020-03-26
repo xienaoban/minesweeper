@@ -6,29 +6,7 @@
     </artifacts-to-build>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/Chessboard.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/Chessboard.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$10.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$11.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$12.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$2.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$3.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$4.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$5.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$6.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$7.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$8.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$9.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/AI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Chessboard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Chessboard.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/UI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UI.java" afterDir="false" />
-    </list>
+    <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,6 +117,7 @@
       <workItem from="1585044837943" duration="6269000" />
       <workItem from="1585107307600" duration="7909000" />
       <workItem from="1585187429467" duration="23055000" />
+      <workItem from="1585216039695" duration="46000" />
     </task>
     <servers />
   </component>

@@ -4,11 +4,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class UI extends JFrame {
 
-    private static final int INFO_HEIGHT = 30;
+    private static final int INFO_HEIGHT = 55;
+
+    private static final String FACE_NORMAL = "\uD83D\uDE42";
+    private static final String FACE_PRESS = "\uD83D\uDE2E";
+    private static final String FACE_WIN = "\uD83D\uDE0E";
+    private static final String FACE_LOSE = "\uD83D\uDE2B";
 
     private int row, col, mineCount;
     private boolean cheat, showMine;
@@ -17,15 +23,19 @@ public class UI extends JFrame {
 
     private int cellLength;
     private BoardCanvas canvas;
+    private TimeThread timeThread;
     private JMenuBar menuBar;
-    private JButton faceButton;
+    private JLabel mineLabel;
+    private JLabel timeLabel;
+    private CellCanvas faceCanvas, mineLabelCanvas, timeLabelCanvas,
+                       boardBorderCanvas, infoBorderCanvas;
 
     public UI() {
         this.setTitle("Minesweeper");
         this.setLayout(null);
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.getContentPane().setBackground(new Color(200, 200, 200));
+        this.getContentPane().setBackground(new Color(192, 192, 192));
         this.cellLength = 28;
         this.showMine = false;
         this.initMenu();
@@ -81,136 +91,120 @@ public class UI extends JFrame {
         menuBar.add(aiMenu);
         menuBar.add(aboutMenu);
 
-        newGameMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                initGame(row, col, mineCount, cheat);
+        newGameMenuItem.addActionListener(e -> initGame(row, col, mineCount, cheat));
+        beginnerMenuItem.addActionListener(e -> initGame(9, 9, 10, cheat));
+        intermediateMenuItem.addActionListener(e -> initGame(16, 16, 40, cheat));
+        advancedMenuItem.addActionListener(e -> initGame(16, 30, 99, cheat));
+        customMenuItem.addActionListener(e -> {
+            try {
+                String s = row + " " + col + " " + mineCount;
+                String[] arr = JOptionPane.showInputDialog("自定义棋盘(行 列 雷)", s).split(" ");
+                int r = Integer.parseInt(arr[0]);
+                int c = Integer.parseInt(arr[1]);
+                int m = Integer.parseInt(arr[2]);
+                if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("你丫是不是数学不好¿");
+                initGame(r, c, m, cheat);
+            }
+            catch (NullPointerException ignored) {}
+            catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
             }
         });
-        beginnerMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                initGame(9, 9, 10, cheat);
+        cellLengthMenuItem.addActionListener(e -> {
+            try {
+                cellLength = Integer.parseInt(JOptionPane.showInputDialog("格子大小设置", String.valueOf(cellLength)));
+                setFrame();
+                canvas.requestRepaintAll();
             }
-        });
-        intermediateMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                initGame(16, 16, 40, cheat);
-            }
-        });
-        advancedMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                initGame(16, 30, 99, cheat);
-            }
-        });
-        customMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String s = String.valueOf(row) + " " + String.valueOf(col) + " " + String.valueOf(mineCount);
-                    String[] arr = JOptionPane.showInputDialog("自定义棋盘(行 列 雷)", s).split(" ");
-                    int r = Integer.parseInt(arr[0]);
-                    int c = Integer.parseInt(arr[1]);
-                    int m = Integer.parseInt(arr[2]);
-                    if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("你丫是不是数学不好¿");
-                    initGame(r, c, m, cheat);
-                }
-                catch (NullPointerException ex) {}
-                catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-        cellLengthMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    cellLength = Integer.parseInt(JOptionPane.showInputDialog("格子大小设置", String.valueOf(cellLength)));
-                    setFrameSize();
-                    setFaceButton();
-                    canvas.requestRepaintAll();
-                }
-                catch (NumberFormatException ex) {}
-                catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, "格式错误，请输入合法的整数。", "错误",JOptionPane.ERROR_MESSAGE);
-                }
+            catch (NumberFormatException ignored) {}
+            catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "格式错误，请输入合法的整数。", "错误",JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        cheatMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会启用新局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
-                if (res != 0) return;
-                cheat = !cheat;
-                if (!cheat) showMine = false;
-                cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
-                undoMenuItem.setEnabled(cheat);
-                mineMenuItem.setEnabled(cheat);
-                luckyMenuItem.setEnabled(cheat);
-                unluckyMenuItem.setEnabled(cheat);
-                initGame(row, col, mineCount, cheat);
-            }
+        cheatMenuItem.addActionListener(e -> {
+            int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会启用新局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
+            if (res != 0) return;
+            cheat = !cheat;
+            if (!cheat) showMine = false;
+            cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
+            undoMenuItem.setEnabled(cheat);
+            mineMenuItem.setEnabled(cheat);
+            luckyMenuItem.setEnabled(cheat);
+            unluckyMenuItem.setEnabled(cheat);
+            initGame(row, col, mineCount, cheat);
         });
-        undoMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                game.undo();
+        undoMenuItem.addActionListener(e -> { game.undo(); setFrameAfterOperation(); });
+        mineMenuItem.addActionListener(e -> {
+            if (!cheat) showMine = false;
+            else {
+                showMine = !showMine;
+                mineMenuItem.setText((showMine? "关闭" : "启用") + "透视");
+                game.setShowMine(showMine);
                 canvas.repaint();
             }
         });
-        mineMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!cheat) showMine = false;
-                else {
-                    showMine = !showMine;
-                    mineMenuItem.setText((showMine? "关闭" : "启用") + "透视");
-                    game.setShowMine(showMine);
-                    canvas.repaint();
-                }
-            }
+
+        sweepBasicallyMenuItem.addActionListener(e -> {
+            AI.sweepBasically(game);
+            setFrameAfterOperation();
         });
 
-        sweepBasicallyMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                AI.sweepBasically(game);
-                canvas.repaint();
-                if (game.getChessBoardState() == Chessboard.SUCCESS) {
-                    faceButton.setText("V");
-                }
-                else if (game.getChessBoardState() == Chessboard.FAIL) {
-                    faceButton.setText("X");
-                }
+        aboutMenuItem.addActionListener(e -> {
+            try {
+                Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban"));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "浏览器打开失败，请手动访问 https://github.com/XieNaoban 。", "错误",JOptionPane.ERROR_MESSAGE);
             }
         });
-
-        aboutMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban"));
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, "浏览器打开失败，请手动访问 https://github.com/XieNaoban 。", "错误",JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
         this.setJMenuBar(menuBar);
 
-        this.faceButton = new JButton("-");
-        this.faceButton.setMargin(new Insets(0,0,0,0));
-        this.add(this.faceButton);
+        Color panelForeColor = new Color(146, 26, 33);
+        Color panelBackColor = new Color(20, 0, 0);
+        Font panelFont = new Font("Consolas",Font.BOLD, cellLength);
 
-        this.faceButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        this.mineLabel = new JLabel("0000", SwingConstants.CENTER);
+        this.mineLabel.setVerticalAlignment(SwingConstants.TOP);
+        this.mineLabel.setOpaque(true);
+        this.mineLabel.setBackground(panelBackColor);
+        this.mineLabel.setFont(panelFont);
+        this.mineLabel.setForeground(panelForeColor);
+        this.add(this.mineLabel);
+
+        this.timeLabel = new JLabel("0000", SwingConstants.CENTER);
+        this.timeLabel.setVerticalAlignment(SwingConstants.TOP);
+        this.timeLabel.setOpaque(true);
+        this.timeLabel.setBackground(panelBackColor);
+        this.timeLabel.setFont(panelFont);
+        this.timeLabel.setForeground(panelForeColor);
+        this.add(this.timeLabel);
+
+
+        this.faceCanvas = new CellCanvas(4, false);
+        this.faceCanvas.enableYellowFace();
+        this.faceCanvas.addMouseListener(new MouseListener() {
+            @Override public void mousePressed(MouseEvent e) {
+                faceCanvas.setReverse(true);
+            }
+            @Override public void mouseReleased(MouseEvent e) {
+                faceCanvas.setReverse(false);
+                if (e.getX() < 0 || e.getX() > faceCanvas.getWidth()) return;
+                if (e.getY() < 0 || e.getY() > faceCanvas.getHeight()) return;
                 initGame(row, col, mineCount, cheat);
             }
+            @Override public void mouseEntered(MouseEvent e) {}
+            @Override public void mouseExited(MouseEvent e) {}
+            @Override public void mouseClicked(MouseEvent e) {}
         });
+        this.mineLabelCanvas = new CellCanvas(2, true);
+        this.timeLabelCanvas = new CellCanvas(2, true);
+        this.boardBorderCanvas = new CellCanvas(5, true);
+        this.infoBorderCanvas = new CellCanvas(3, true);
+        this.add(this.faceCanvas);
+        this.add(this.mineLabelCanvas);
+        this.add(this.timeLabelCanvas);
+        this.add(this.boardBorderCanvas);
+        this.add(this.infoBorderCanvas);
     }
 
     private void initGame(int row, int col, int mineCount, boolean cheat) {
@@ -221,26 +215,60 @@ public class UI extends JFrame {
         this.game = new Chessboard(this.row, this.col, this.mineCount, this.cheat);
         this.game.setShowMine(this.showMine);
 
-        this.setFrameSize();
-        this.setFaceButton();
+        this.setFrame();
 
-        if (canvas != null) this.remove(canvas);
+        if (this.timeThread != null && !this.timeThread.isInterrupted()) this.timeThread.interrupt();
+        this.timeThread = new TimeThread(this.timeLabel, this.cheat ? 0x7fffffff : 0);
+
+        if (this.canvas != null) this.remove(this.canvas);
         this.canvas = new BoardCanvas();
-        this.add(canvas);
+        this.add(this.canvas, 1);
     }
 
-    private void setFrameSize() {
-        this.setSize(this.col * this.cellLength + 16 + 10, this.row * this.cellLength + this.menuBar.getPreferredSize().height + 39 + 10 + INFO_HEIGHT);
+    private void setFrame() {
+        int boardWidth = this.col * this.cellLength;
+        int boardHeight = this.row * this.cellLength;
+
+        this.setSize(boardWidth + 16 + 10, boardHeight + this.menuBar.getPreferredSize().height + 39 + 10 + 8 + INFO_HEIGHT);
+
+        this.infoBorderCanvas.setBounds(5, 5, boardWidth + 10, INFO_HEIGHT - 5);
+        this.boardBorderCanvas.setBounds(5, INFO_HEIGHT + 10, boardWidth + 10, boardHeight + 10);
+
+        this.timeLabelCanvas.setBounds(13, 13, 74, 34);
+        this.mineLabelCanvas.setBounds(boardWidth - 60 - 4 - 3, 13, 74, 34);
+        this.faceCanvas.setBounds(10 + boardWidth / 2 - 15 - 2, 13, 34, 34);
+
+        this.timeLabel.setBounds(13 + 2, 13 + 2, 70, 30);
+        this.mineLabel.setBounds(boardWidth - 60 - 2 - 3, 13 + 2, 70, 30);
+        this.setMineLabel();
+        this.faceCanvas.setEmoji(FACE_NORMAL);
     }
 
-    private void setFaceButton() {
-        this.faceButton.setBounds(10 + this.cellLength * this.col / 2 - 15, 5, 30, 30);
-        this.faceButton.setText("o");
+    private void setMineLabel() {
+        this.mineLabel.setText(String.format("%04d", this.game.getMineLeft()));
+    }
+
+    private void setFrameAfterOperation() {
+        this.canvas.repaint();
+        switch (this.game.getChessBoardState()) {
+            case Chessboard.SUCCESS:
+                faceCanvas.setEmoji(FACE_WIN);
+                this.timeThread.interrupt();
+                break;
+            case Chessboard.FAIL:
+                faceCanvas.setEmoji(FACE_LOSE);
+                this.timeThread.interrupt();
+                break;
+            case Chessboard.PROCESS:
+                faceCanvas.setEmoji(FACE_NORMAL);
+                break;
+        }
+        this.setMineLabel();
     }
 
     private class BoardCanvas extends Canvas implements MouseMotionListener, MouseListener {
 
-        private final Color COLOR[] = {
+        private final Color[] COLOR = {
                 new Color(192, 192, 192), new Color(8, 8, 215), new Color(30, 100, 30),
                 new Color(171, 25, 26), new Color(10, 5, 96), new Color(84, 9, 20),
                 new Color(20, 112, 102), new Color(1, 1, 1), new Color(128, 128, 128)
@@ -257,7 +285,7 @@ public class UI extends JFrame {
             this.mouseLeft = this.mouseRight = this.mouseBoth = false;
             this.font = new Font("Consolas",Font.BOLD, cellLength);
 
-            this.setBounds(10, 10 + INFO_HEIGHT, col * cellLength, row * cellLength);
+            this.setBounds(10, 15 + INFO_HEIGHT, col * cellLength, row * cellLength);
             this.addMouseListener(this);
             this.addMouseMotionListener(this);
         }
@@ -409,7 +437,7 @@ public class UI extends JFrame {
         @Override
         public void mousePressed(MouseEvent e) {
             if (game.getChessBoardState() != Chessboard.PROCESS) return;
-            faceButton.setText("O");
+            faceCanvas.setEmoji(FACE_PRESS);
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) this.mouseLeft = true;
@@ -420,28 +448,29 @@ public class UI extends JFrame {
 
         @Override
         public void mouseReleased(MouseEvent e) {
-            faceButton.setText("o");
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) {
                 this.mouseLeft = false;
                 if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
-                else if (!this.mouseRight) game.uncover(this.mouseX, this.mouseY);
+                else if (!this.mouseRight) {
+                    game.uncover(this.mouseX, this.mouseY);
+                    if (!timeThread.isAlive() && game.getChessBoardState() == Chessboard.PROCESS && !cheat)
+                        timeThread.start();
+                }
             }
             else if (e.getButton() == MouseEvent.BUTTON3) {
                 this.mouseRight = false;
                 if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
-                else if (!this.mouseLeft) game.cycFlagAndQuestion(this.mouseX, this.mouseY);
+                else if (!this.mouseLeft) {
+                    game.cycFlagAndQuestion(this.mouseX, this.mouseY);
+                    setMineLabel();
+                    if (!timeThread.isAlive() && game.getChessBoardState() == Chessboard.PROCESS && !cheat)
+                        timeThread.start();
+                }
             }
             if (!this.mouseLeft && !this.mouseRight) this.mouseBoth = false;
-            this.repaint();
-
-            if (game.getChessBoardState() == Chessboard.SUCCESS) {
-                faceButton.setText("V");
-            }
-            else if (game.getChessBoardState() == Chessboard.FAIL) {
-                faceButton.setText("X");
-            }
+            setFrameAfterOperation();
         }
 
         @Override
@@ -462,5 +491,99 @@ public class UI extends JFrame {
 
         @Override
         public void mouseMoved(MouseEvent e) { }
+    }
+
+    private class CellCanvas extends Canvas {
+        private boolean reverse;
+        private int margin;
+        private boolean yellowFace;
+        private String emoji;
+
+        CellCanvas(int margin, boolean reverse) {
+            this.reverse = reverse;
+            this.margin = margin;
+            this.yellowFace = false;
+            this.emoji = FACE_NORMAL;
+        }
+
+        void enableYellowFace() { this.yellowFace = true; }
+
+        void setReverse(boolean reverse) {
+            this.reverse = reverse;
+            this.emoji = "\uD83D\uDE32";
+            this.repaint();
+        }
+
+        void setEmoji(String emoji) {
+            this.emoji = emoji;
+            this.repaint();
+        }
+
+        private void drawCanvas(Graphics gCanvas) {
+            Image buffer = this.createImage(this.getWidth(), this.getHeight());
+            Graphics2D g = (Graphics2D) buffer.getGraphics();
+            int w = this.getWidth();
+            int h = this.getHeight();
+            Color c1 = new Color(253, 253, 253);
+            Color c2 = new Color(128, 128, 128);
+            Color c3 = new Color(192, 192, 192);
+            if (this.reverse) {
+                Color t = c1; c1 = c2; c2 = t;
+            }
+            g.setColor(c1);
+            int[] xp1 = {0, 0, w, w - 4, 4};
+            int[] yp1 = {h, 0, 0, 4, h - 4};
+            g.fillPolygon(xp1, yp1, 5);
+
+            g.setColor(c2);
+            int[] xp2 = {0, w, w, w - 4, 4};
+            int[] yp2 = {h, h, 0, 4, h - 4};
+            g.fillPolygon(xp2, yp2, 5);
+
+            g.setColor(c3);
+            g.fillRect(margin, margin, w - margin * 2, h - margin * 2);
+
+            if (yellowFace) {
+                g.setColor(new Color(255, 248, 2));
+                g.fillOval(6, 6, 23, 22);
+                g.setColor(new Color(0, 0, 0));
+                g.setFont(new Font("Dialog",Font.BOLD, 24));
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.drawString(this.emoji, 5, 26);
+            }
+            gCanvas.drawImage(buffer, 0, 0, this);
+        }
+
+        @Override public void update(Graphics gCanvas) { this.drawCanvas(gCanvas); }
+
+        @Override public void paint(Graphics gCanvas) { this.drawCanvas(gCanvas); }
+    }
+
+    private class TimeThread extends Thread {
+        private Date startTime, currentTime;
+        private JLabel targetLabel;
+
+        TimeThread(JLabel label, long initTime) {
+            this.targetLabel = label;
+            this.setLabel(initTime);
+        }
+
+        private void setLabel(long time) {
+            if (time > 9999) time = 9999;
+            this.targetLabel.setText(String.format("%04d", time));
+        }
+
+        @Override
+        public void run() {
+            this.startTime = this.currentTime = new Date();
+            while (!this.isInterrupted()) {
+                try {
+                    this.currentTime = new Date();
+                    long diff = (this.currentTime.getTime() - startTime.getTime());
+                    this.setLabel(diff / 1000);
+                    Thread.sleep(1000 - (diff % 1000));
+                } catch (InterruptedException e) { break; }
+            }
+        }
     }
 }

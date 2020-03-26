@@ -24,6 +24,7 @@ public class Chessboard {
     private boolean[][] mineBoard;
     private int[][] playerBoard, lastPlayerBoard;
     private int clearCellLeft;
+    private int mineLeft;
 
     public Chessboard(int row, int col, int mineCount) {
         this.initChessboard(row, col, mineCount, false, null);
@@ -54,6 +55,7 @@ public class Chessboard {
             this.playerBoard[i][j] = UNCHECKED;
         this.lastPlayerBoard = null;
         this.clearCellLeft = this.row * this.col - this.mineCount;
+        this.mineLeft = this.mineCount;
     }
 
     private void initRandomMineBoard(int x, int y) {
@@ -146,6 +148,7 @@ public class Chessboard {
         if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
             this.recordLastPlayerBoard();
             this.playerBoard[x][y] = FLAG;
+            --this.mineLeft;
         }
         return this.state;
     }
@@ -155,6 +158,7 @@ public class Chessboard {
         if (this.isXYLegal(x, y) && this.playerBoard[x][y] == FLAG) {
             this.recordLastPlayerBoard();
             this.playerBoard[x][y] = UNCHECKED;
+            ++this.mineLeft;
         }
         return this.state;
     }
@@ -213,7 +217,7 @@ public class Chessboard {
         if (this.state != PROCESS || !this.isXYLegal(x, y)) return this.state;
         switch (this.playerBoard[x][y]) {
             case UNCHECKED: this.setFlag(x, y); break;
-            case FLAG: this.setQuestion(x, y); break;
+            case FLAG: this.unsetFlag(x, y); this.setQuestion(x, y); break;
             case QUESTION: this.unsetQuestion(x, y); break;
         }
         return this.state;
@@ -223,6 +227,7 @@ public class Chessboard {
     public int getRow() { return this.row; }
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
+    public int getMineLeft() { return this.mineLeft; }
 
     public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
     public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {

@@ -53,6 +53,10 @@ public class AI {
         return UNKNOWN;
     }
 
+    /**
+     * 仅通过周围八格信息，找出所有必为雷或必不为雷的格子
+     * @param game
+     */
     public static void sweepBasically(Chessboard game) {
         boolean swept;
         do {

@@ -15,6 +15,7 @@ public class UI extends JFrame {
     private static final String FACE_PRESS = "\uD83D\uDE2E";
     private static final String FACE_WIN = "\uD83D\uDE0E";
     private static final String FACE_LOSE = "\uD83D\uDE2B";
+    private static final String FACE_RESTART = "\uD83D\uDE32";
 
     private int row, col, mineCount;
     private boolean cheat, showMine;
@@ -229,7 +230,7 @@ public class UI extends JFrame {
         int boardWidth = this.col * this.cellLength;
         int boardHeight = this.row * this.cellLength;
 
-        this.setSize(boardWidth + 16 + 10, boardHeight + this.menuBar.getPreferredSize().height + 39 + 10 + 8 + INFO_HEIGHT);
+        this.setSize(new Dimension(boardWidth + 16 + 10, boardHeight + this.menuBar.getPreferredSize().height + 39 + 10 + 8 + INFO_HEIGHT));
 
         this.infoBorderCanvas.setBounds(5, 5, boardWidth + 10, INFO_HEIGHT - 5);
         this.boardBorderCanvas.setBounds(5, INFO_HEIGHT + 10, boardWidth + 10, boardHeight + 10);
@@ -510,7 +511,6 @@ public class UI extends JFrame {
 
         void setReverse(boolean reverse) {
             this.reverse = reverse;
-            this.emoji = "\uD83D\uDE32";
             this.repaint();
         }
 
@@ -549,7 +549,7 @@ public class UI extends JFrame {
                 g.setColor(new Color(0, 0, 0));
                 g.setFont(new Font("Dialog",Font.BOLD, 24));
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.drawString(this.emoji, 5, 26);
+                g.drawString(this.reverse ? FACE_RESTART : this.emoji, 5, 26);
             }
             gCanvas.drawImage(buffer, 0, 0, this);
         }

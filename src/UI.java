@@ -81,7 +81,9 @@ public class UI extends JFrame {
         cheatMenu.add(unluckyMenuItem);
 
 
+        JMenuItem checkBasicallyMenuItem = new JMenuItem("提示一格");
         JMenuItem sweepBasicallyMenuItem = new JMenuItem("简易扫扫");
+        aiMenu.add(checkBasicallyMenuItem);
         aiMenu.add(sweepBasicallyMenuItem);
 
         JMenuItem aboutMenuItem         = new JMenuItem("作者: 蟹恼板");
@@ -146,8 +148,29 @@ public class UI extends JFrame {
             }
         });
 
+        checkBasicallyMenuItem.addActionListener(e -> {
+            int[] res = AI.checkAllBasically(game);
+            if (res[0] != AI.UNKNOWN) {
+                new Thread() {
+                    public void run() {
+                        int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
+                        int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
+                        try {
+                            for (int i = 0; i < 3; ++ i) {
+                                canvas.highlight(arr1); Thread.sleep(150);
+                                canvas.highlight(arr0); Thread.sleep(100);
+                            }
+                            canvas.highlight(null);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }.start();
+            }
+        });
+
         sweepBasicallyMenuItem.addActionListener(e -> {
-            AI.sweepBasically(game);
+            AI.sweepAllBasically(game);
             setFrameAfterOperation();
         });
 
@@ -280,11 +303,13 @@ public class UI extends JFrame {
         private int[][] lastPlayerBoard;
         private Font font;
         private Image buffer;
+        private int[][] highlightArr;
 
         BoardCanvas() {
             this.mouseX = this.mouseY = -1;
             this.mouseLeft = this.mouseRight = this.mouseBoth = false;
             this.font = new Font("Consolas",Font.BOLD, cellLength);
+            this.highlightArr = null;
 
             this.setBounds(10, 15 + INFO_HEIGHT, col * cellLength, row * cellLength);
             this.addMouseListener(this);
@@ -299,7 +324,7 @@ public class UI extends JFrame {
 
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
                 if (this.lastPlayerBoard == null || this.lastPlayerBoard[i][j] != game.getPlayerBoard(i, j, true))
-                    this.drawCell(i, j, false, g);
+                    this.drawCell(i, j, game.getPlayerBoard(i, j, true), false, g);
             }
             this.lastPlayerBoard = game.getPlayerBoard(true);
 
@@ -311,14 +336,21 @@ public class UI extends JFrame {
                 around.add(new Pair<>(this.mouseX, this.mouseY));
             }
             for (Pair<Integer, Integer> xy : around) {
-                this.drawCell(xy.getKey(), xy.getValue(), true, g);
+                int x = xy.getKey(), y = xy.getValue();
+                this.drawCell(x, y, game.getPlayerBoard(x, y, true),true, g);
                 this.lastPlayerBoard[xy.getKey()][xy.getValue()] = 0x7fffffff;
+            }
+            if (this.highlightArr != null) {
+                int state = 0;
+                for (int[] p : this.highlightArr) {
+                    if (p.length == 1) { state = p[0]; continue; }
+                    this.drawCell(p[0], p[1], state == AI.MINE ? Chessboard.MINE : Chessboard.UNCHECKED, state != AI.UNKNOWN, g);
+                }
             }
             gPanel.drawImage(this.buffer, 0, 0, this);
         }
 
-        private void drawCell(int x, int y, boolean pressed, Graphics2D g) {
-            int state = game.getPlayerBoard(x, y, true);
+        private void drawCell(int x, int y, int state, boolean pressed, Graphics2D g) {
             int px = this.idxYToPosX(y);
             int py = this.idxXToPosY(x);
 
@@ -422,19 +454,21 @@ public class UI extends JFrame {
             this.repaint();
         }
 
+        public void highlight(int[][] arr) {
+            this.highlightArr = arr;
+            this.repaint();
+        }
+
         @Override
         public void update(Graphics g) {
             this.drawBoard(g);
         }
-
         @Override
         public void paint(Graphics g) {
             if (!this.mouseLeft && !this.mouseRight) this.drawBoard(g);
         }
-
         @Override
         public void mouseClicked(MouseEvent e) { }
-
         @Override
         public void mousePressed(MouseEvent e) {
             if (game.getChessBoardState() != Chessboard.PROCESS) return;
@@ -446,7 +480,6 @@ public class UI extends JFrame {
             if (this.mouseLeft && this.mouseRight) this.mouseBoth = true;
             this.repaint();
         }
-
         @Override
         public void mouseReleased(MouseEvent e) {
             this.mouseX = this.posYToIdxX(e.getY());
@@ -473,13 +506,10 @@ public class UI extends JFrame {
             if (!this.mouseLeft && !this.mouseRight) this.mouseBoth = false;
             setFrameAfterOperation();
         }
-
         @Override
         public void mouseEntered(MouseEvent e) { }
-
         @Override
         public void mouseExited(MouseEvent e) { }
-
         @Override
         public void mouseDragged(MouseEvent e) {
             int lastMouseX = this.mouseX;
@@ -489,7 +519,6 @@ public class UI extends JFrame {
             if ((this.mouseLeft || this.mouseRight)
                     && (this.mouseX !=lastMouseX || this.mouseY !=lastMouseY)) this.repaint();
         }
-
         @Override
         public void mouseMoved(MouseEvent e) { }
     }

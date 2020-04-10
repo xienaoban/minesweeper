@@ -15,7 +15,7 @@ public class AI {
      * @return 周围的Unchecked格子全为（或全不为）雷、或未知
      */
     public static int checkUncoveredCellBasically(Chessboard game, int x, int y) {
-        if (game.getPlayerBoard(x, y) < 0 && game.getPlayerBoard(x, y) > 8) return UNKNOWN;
+        if (game.getPlayerBoard(x, y) < 0 || game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
@@ -54,10 +54,24 @@ public class AI {
     }
 
     /**
+     * 扫描全盘，仅通过周围八格信息，判断是否存在必为雷或必不为雷的格子
+     * @param game
+     * @return int数组第一个值代表类型，第二、第三个值代表坐标
+     */
+    public static int[] checkAllBasically(Chessboard game) {
+        for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
+            int type = checkUncheckedCellBasically(game, x, y);
+            if (type == UNKNOWN) continue;
+            return new int[]{type, x, y};
+        }
+        return new int[]{UNKNOWN};
+    }
+
+    /**
      * 仅通过周围八格信息，找出所有必为雷或必不为雷的格子
      * @param game
      */
-    public static void sweepBasically(Chessboard game) {
+    public static void sweepAllBasically(Chessboard game) {
         boolean swept;
         do {
             swept = false;

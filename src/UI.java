@@ -29,13 +29,14 @@ public class UI extends JFrame {
     private JLabel mineLabel;
     private JLabel timeLabel;
     private CellCanvas faceCanvas, mineLabelCanvas, timeLabelCanvas,
-                       boardBorderCanvas, infoBorderCanvas;
+            boardBorderCanvas, infoBorderCanvas;
 
     public UI() {
         this.setTitle("Minesweeper");
-        this.setLayout(null);
+        this.setLayout(new BorderLayout());
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.getContentPane().setLayout(null);
         this.getContentPane().setBackground(new Color(192, 192, 192));
         this.cellLength = 28;
         this.showMine = false;
@@ -186,6 +187,7 @@ public class UI extends JFrame {
         Color panelForeColor = new Color(146, 26, 33);
         Color panelBackColor = new Color(20, 0, 0);
         Font panelFont = new Font("Consolas",Font.BOLD, cellLength);
+        Container container = this.getContentPane();
 
         this.mineLabel = new JLabel("0000", SwingConstants.CENTER);
         this.mineLabel.setVerticalAlignment(SwingConstants.TOP);
@@ -193,7 +195,7 @@ public class UI extends JFrame {
         this.mineLabel.setBackground(panelBackColor);
         this.mineLabel.setFont(panelFont);
         this.mineLabel.setForeground(panelForeColor);
-        this.add(this.mineLabel);
+        container.add(this.mineLabel);
 
         this.timeLabel = new JLabel("0000", SwingConstants.CENTER);
         this.timeLabel.setVerticalAlignment(SwingConstants.TOP);
@@ -201,7 +203,7 @@ public class UI extends JFrame {
         this.timeLabel.setBackground(panelBackColor);
         this.timeLabel.setFont(panelFont);
         this.timeLabel.setForeground(panelForeColor);
-        this.add(this.timeLabel);
+        container.add(this.timeLabel);
 
 
         this.faceCanvas = new CellCanvas(4, false);
@@ -224,11 +226,11 @@ public class UI extends JFrame {
         this.timeLabelCanvas = new CellCanvas(2, true);
         this.boardBorderCanvas = new CellCanvas(5, true);
         this.infoBorderCanvas = new CellCanvas(3, true);
-        this.add(this.faceCanvas);
-        this.add(this.mineLabelCanvas);
-        this.add(this.timeLabelCanvas);
-        this.add(this.boardBorderCanvas);
-        this.add(this.infoBorderCanvas);
+        container.add(this.faceCanvas);
+        container.add(this.mineLabelCanvas);
+        container.add(this.timeLabelCanvas);
+        container.add(this.boardBorderCanvas);
+        container.add(this.infoBorderCanvas);
     }
 
     private void initGame(int row, int col, int mineCount, boolean cheat) {
@@ -253,7 +255,8 @@ public class UI extends JFrame {
         int boardWidth = this.col * this.cellLength;
         int boardHeight = this.row * this.cellLength;
 
-        this.setSize(new Dimension(boardWidth + 16 + 10, boardHeight + this.menuBar.getPreferredSize().height + 39 + 10 + 8 + INFO_HEIGHT));
+        this.getContentPane().setPreferredSize(new Dimension(boardWidth + 20, boardHeight + this.menuBar.getPreferredSize().height + 5 + INFO_HEIGHT));
+        this.pack();
 
         this.infoBorderCanvas.setBounds(5, 5, boardWidth + 10, INFO_HEIGHT - 5);
         this.boardBorderCanvas.setBounds(5, INFO_HEIGHT + 10, boardWidth + 10, boardHeight + 10);
@@ -322,6 +325,14 @@ public class UI extends JFrame {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setFont(this.font);
 
+            if (this.highlightArr != null) {
+                int state = 0;
+                for (int[] p : this.highlightArr) {
+                    if (p.length == 1) { state = p[0]; continue; }
+                    int x = p[0], y = p[1];
+                    this.drawCell(x, y, state == AI.MINE ? Chessboard.MINE :  game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
+                }
+            }
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
                 if (this.lastPlayerBoard == null || this.lastPlayerBoard[i][j] != game.getPlayerBoard(i, j, true))
                     this.drawCell(i, j, game.getPlayerBoard(i, j, true), false, g);
@@ -339,13 +350,6 @@ public class UI extends JFrame {
                 int x = xy.getKey(), y = xy.getValue();
                 this.drawCell(x, y, game.getPlayerBoard(x, y, true),true, g);
                 this.lastPlayerBoard[xy.getKey()][xy.getValue()] = 0x7fffffff;
-            }
-            if (this.highlightArr != null) {
-                int state = 0;
-                for (int[] p : this.highlightArr) {
-                    if (p.length == 1) { state = p[0]; continue; }
-                    this.drawCell(p[0], p[1], state == AI.MINE ? Chessboard.MINE : Chessboard.UNCHECKED, state != AI.UNKNOWN, g);
-                }
             }
             gPanel.drawImage(this.buffer, 0, 0, this);
         }

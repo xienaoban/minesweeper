@@ -9,8 +9,12 @@
     <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/AI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/UI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$CellCanvas.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$CellCanvas.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$TimeThread.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$TimeThread.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/UI.java" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -60,7 +64,7 @@
     <property name="project.structure.last.edited" value="Artifacts" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="project.structure.side.proportion" value="0.2" />
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+    <property name="settings.editor.selected.configurable" value="preferences.general" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -128,6 +132,10 @@
       <workItem from="1585648987729" duration="18000" />
       <workItem from="1585649018720" duration="7952000" />
       <workItem from="1586497593951" duration="7138000" />
+      <workItem from="1586688699733" duration="883000" />
+      <workItem from="1587283231063" duration="222000" />
+      <workItem from="1587376989654" duration="680000" />
+      <workItem from="1589339323029" duration="3147000" />
     </task>
     <servers />
   </component>

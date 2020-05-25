@@ -14,15 +14,15 @@ public class AI {
      * @param y
      * @return 周围的Unchecked格子全为（或全不为）雷、或未知
      */
-    public static int checkUncoveredCellBasically(Chessboard game, int x, int y) {
+    public static int checkUncoveredCellBasically(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) < 0 || game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
             switch (game.getPlayerBoard(p.getKey(), p.getValue())) {
-                case Chessboard.UNCHECKED:
-                case Chessboard.QUESTION: ++uncheckedOrQuestion; break;
-                case Chessboard.FLAG: ++flag; break;
+                case Game.UNCHECKED:
+                case Game.QUESTION: ++uncheckedOrQuestion; break;
+                case Game.FLAG: ++flag; break;
             }
         }
         if (uncheckedOrQuestion == 0) return UNKNOWN;
@@ -38,9 +38,9 @@ public class AI {
      * @param y
      * @return AI认为是有、无雷还是未知
      */
-    public static int checkUncheckedCellBasically(Chessboard game, int x, int y) {
-        if (game.getPlayerBoard(x, y) != Chessboard.UNCHECKED
-                && game.getPlayerBoard(x, y) != Chessboard.QUESTION) return UNKNOWN;
+    public static int checkUncheckedCellBasically(Game game, int x, int y) {
+        if (game.getPlayerBoard(x, y) != Game.UNCHECKED
+                && game.getPlayerBoard(x, y) != Game.QUESTION) return UNKNOWN;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
             int px = p.getKey(), py = p.getValue();
@@ -58,7 +58,7 @@ public class AI {
      * @param game
      * @return int数组第一个值代表类型，第二、第三个值代表坐标
      */
-    public static int[] checkAllBasically(Chessboard game) {
+    public static int[] checkAllBasically(Game game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
             int type = checkUncheckedCellBasically(game, x, y);
             if (type == UNKNOWN) continue;
@@ -71,7 +71,7 @@ public class AI {
      * 仅通过周围八格信息，找出所有必为雷或必不为雷的格子
      * @param game
      */
-    public static void sweepAllBasically(Chessboard game) {
+    public static void sweepAllBasically(Game game) {
         boolean swept;
         do {
             swept = false;
@@ -81,11 +81,11 @@ public class AI {
                 swept = true;
                 for (Pair<Integer, Integer> p : game.getAround(x, y)) {
                     int px = p.getKey(), py = p.getValue();
-                    if (game.getPlayerBoard(px, py) != Chessboard.UNCHECKED
-                            && game.getPlayerBoard(px, py) != Chessboard.QUESTION) continue;
+                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED
+                            && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
                     if (type == MINE) game.setFlag(px, py);
                     else if (type == NOT_MINE) game.uncover(px, py);
-                    if (game.getChessBoardState() == Chessboard.FAIL) return;
+                    if (game.getGameState() == Game.FAIL) return;
                 }
             }
         } while (swept);

@@ -12,7 +12,7 @@ public class Main {
     private static void CLI() {
         Scanner sc = new Scanner(System.in);
         System.out.print("Input row, col and mineCount: ");
-        Chessboard game = new Chessboard(sc.nextInt(), sc.nextInt(), sc.nextInt());
+        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
         while (true) {
             System.out.print("Input operation, row and col: ");
             int op = sc.nextInt();
@@ -29,7 +29,7 @@ public class Main {
             }
             game.printPlayerBoardToConsole();
             System.out.println(sucess);
-            if (sucess != Chessboard.PROCESS) break;
+            if (sucess != Game.PROCESS) break;
         }
     }
 }

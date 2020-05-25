@@ -9,17 +9,17 @@ import java.util.List;
 
 public class UI extends JFrame {
 
-    private static final int INFO_HEIGHT = 55;
-
     private static final String FACE_NORMAL = "\uD83D\uDE42";
     private static final String FACE_PRESS = "\uD83D\uDE2E";
     private static final String FACE_WIN = "\uD83D\uDE0E";
     private static final String FACE_LOSE = "\uD83D\uDE2B";
     private static final String FACE_RESTART = "\uD83D\uDE32";
 
+    private static final int INFO_HEIGHT = 55;
+
     private int row, col, mineCount;
     private boolean cheat, showMine;
-    private Chessboard game;
+    private Game game;
     private AI ai;
 
     private int cellLength;
@@ -238,7 +238,7 @@ public class UI extends JFrame {
         this.col = col;
         this.mineCount = mineCount;
         this.cheat = cheat;
-        this.game = new Chessboard(this.row, this.col, this.mineCount, this.cheat);
+        this.game = new Game(this.row, this.col, this.mineCount, this.cheat);
         this.game.setShowMine(this.showMine);
 
         this.setFrame();
@@ -248,7 +248,7 @@ public class UI extends JFrame {
 
         if (this.canvas != null) this.remove(this.canvas);
         this.canvas = new BoardCanvas();
-        this.add(this.canvas, 1);
+        this.getContentPane().add(this.canvas, 1);
     }
 
     private void setFrame() {
@@ -277,16 +277,16 @@ public class UI extends JFrame {
 
     private void setFrameAfterOperation() {
         this.canvas.repaint();
-        switch (this.game.getChessBoardState()) {
-            case Chessboard.SUCCESS:
+        switch (this.game.getGameState()) {
+            case Game.SUCCESS:
                 faceCanvas.setEmoji(FACE_WIN);
                 this.timeThread.interrupt();
                 break;
-            case Chessboard.FAIL:
+            case Game.FAIL:
                 faceCanvas.setEmoji(FACE_LOSE);
                 this.timeThread.interrupt();
                 break;
-            case Chessboard.PROCESS:
+            case Game.PROCESS:
                 faceCanvas.setEmoji(FACE_NORMAL);
                 break;
         }
@@ -330,7 +330,7 @@ public class UI extends JFrame {
                 for (int[] p : this.highlightArr) {
                     if (p.length == 1) { state = p[0]; continue; }
                     int x = p[0], y = p[1];
-                    this.drawCell(x, y, state == AI.MINE ? Chessboard.MINE :  game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
+                    this.drawCell(x, y, state == AI.MINE ? Game.MINE :  game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
                 }
             }
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
@@ -359,9 +359,9 @@ public class UI extends JFrame {
             int py = this.idxXToPosY(x);
 
             if (state < 0 || state > 8) {
-                if (pressed && (state == Chessboard.UNCHECKED || state == Chessboard.GRAY_MINE)) {
+                if (pressed && (state == Game.UNCHECKED || state == Game.GRAY_MINE)) {
                     this.drawPressedVoidCell(px, py, g);
-                    if (state == Chessboard.GRAY_MINE) this.drawMineOfCell(px, py, new Color(166, 166, 166), g);
+                    if (state == Game.GRAY_MINE) this.drawMineOfCell(px, py, new Color(166, 166, 166), g);
                 }
                 else {
                     g.setColor(new Color(253, 253, 253));
@@ -378,12 +378,12 @@ public class UI extends JFrame {
                     g.fillRect(px + 4, py + 4, cellLength - 8, cellLength - 8);
 
                     switch (state) {
-                        case Chessboard.FLAG: this.drawFlagOfCell(px, py, g); break;
-                        case Chessboard.QUESTION: this.drawQuestionOfCell(px, py, g); break;
-                        case Chessboard.MINE: this.drawMineOfCell(px, py, Color.BLACK, g); break;
-                        case Chessboard.NOT_MINE: this.drawMineOfCell(px, py, Color.BLACK, g); this.drawNotOfCell(px, py, g); break;
-                        case Chessboard.RED_MINE: this.drawMineOfCell(px, py, Color.RED, g); break;
-                        case Chessboard.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
+                        case Game.FLAG: this.drawFlagOfCell(px, py, g); break;
+                        case Game.QUESTION: this.drawQuestionOfCell(px, py, g); break;
+                        case Game.MINE: this.drawMineOfCell(px, py, Color.BLACK, g); break;
+                        case Game.NOT_MINE: this.drawMineOfCell(px, py, Color.BLACK, g); this.drawNotOfCell(px, py, g); break;
+                        case Game.RED_MINE: this.drawMineOfCell(px, py, Color.RED, g); break;
+                        case Game.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
                     }
                 }
             }
@@ -475,7 +475,7 @@ public class UI extends JFrame {
         public void mouseClicked(MouseEvent e) { }
         @Override
         public void mousePressed(MouseEvent e) {
-            if (game.getChessBoardState() != Chessboard.PROCESS) return;
+            if (game.getGameState() != Game.PROCESS) return;
             faceCanvas.setEmoji(FACE_PRESS);
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
@@ -493,7 +493,7 @@ public class UI extends JFrame {
                 if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
                 else if (!this.mouseRight) {
                     game.uncover(this.mouseX, this.mouseY);
-                    if (!timeThread.isAlive() && game.getChessBoardState() == Chessboard.PROCESS && !cheat)
+                    if (!timeThread.isAlive() && game.getGameState() == Game.PROCESS && !cheat)
                         timeThread.start();
                 }
             }
@@ -503,7 +503,7 @@ public class UI extends JFrame {
                 else if (!this.mouseLeft) {
                     game.cycFlagAndQuestion(this.mouseX, this.mouseY);
                     setMineLabel();
-                    if (!timeThread.isAlive() && game.getChessBoardState() == Chessboard.PROCESS && !cheat)
+                    if (!timeThread.isAlive() && game.getGameState() == Game.PROCESS && !cheat)
                         timeThread.start();
                 }
             }

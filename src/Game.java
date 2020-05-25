@@ -1,8 +1,8 @@
 import javafx.util.Pair;
 import java.util.*;
 
-public class Chessboard {
-    // state of chessboard
+public class Game {
+    // state of game
     public static final int SUCCESS = 1;
     public static final int FAIL = -1;
     public static final int PROCESS = 0;
@@ -26,23 +26,23 @@ public class Chessboard {
     private int clearCellLeft;
     private int mineLeft;
 
-    public Chessboard(int row, int col, int mineCount) {
-        this.initChessboard(row, col, mineCount, false, null);
+    public Game(int row, int col, int mineCount) {
+        this.initGame(row, col, mineCount, false, null);
     }
 
-    public Chessboard(int row, int col, int mineCount, boolean cheat) {
-        this.initChessboard(row, col, mineCount, cheat, null);
+    public Game(int row, int col, int mineCount, boolean cheat) {
+        this.initGame(row, col, mineCount, cheat, null);
     }
 
-    public Chessboard(boolean[][] mineBoard) {
+    public Game(boolean[][] mineBoard) {
         int mineCount = 0;
         for (boolean[] i : mineBoard) for (boolean j : i) {
             if (j) ++mineCount;
         }
-        this.initChessboard(mineBoard.length, mineBoard[0].length, mineCount, true, mineBoard);
+        this.initGame(mineBoard.length, mineBoard[0].length, mineCount, true, mineBoard);
     }
 
-    private void initChessboard(int row, int col, int mineCount, boolean cheat, boolean[][] mineBoard) {
+    private void initGame(int row, int col, int mineCount, boolean cheat, boolean[][] mineBoard) {
         this.state = PROCESS;
         this.row = row;
         this.col = col;
@@ -223,7 +223,7 @@ public class Chessboard {
         return this.state;
     }
 
-    public int getChessBoardState() { return this.state; }
+    public int getGameState() { return this.state; }
     public int getRow() { return this.row; }
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }

@@ -4,10 +4,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-public class UI extends JFrame {
+public class GUI extends JFrame {
 
     private static final String FACE_NORMAL = "\uD83D\uDE42";
     private static final String FACE_PRESS = "\uD83D\uDE2E";
@@ -31,7 +32,7 @@ public class UI extends JFrame {
     private CellCanvas faceCanvas, mineLabelCanvas, timeLabelCanvas,
             boardBorderCanvas, infoBorderCanvas;
 
-    public UI() {
+    public GUI() {
         this.setTitle("Minesweeper");
         this.setLayout(new BorderLayout());
         this.setResizable(false);
@@ -151,6 +152,13 @@ public class UI extends JFrame {
 
         checkBasicallyMenuItem.addActionListener(e -> {
             int[] res = AI.checkAllBasically(game);
+            System.out.println(Arrays.deepToString(AI.findAllConnectedComponents(game))
+                    .replaceAll("-233", "n")
+                    .replaceAll("0", ".")
+                    .replaceAll(", \\[", "\n")
+                    .replaceAll("\\[", "")
+                    .replaceAll("\\]", "")
+                    .replaceAll(", ", "\t"));
             if (res[0] != AI.UNKNOWN) {
                 new Thread() {
                     public void run() {

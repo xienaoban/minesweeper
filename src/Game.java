@@ -183,7 +183,7 @@ public class Game {
 
     public int check(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (!this.isXYLegal(x, y) || this.playerBoard[x][y] < 0 || this.playerBoard[x][y] > 8) return this.state;
+        if (!this.isXYLegal(x, y) || this.playerBoard[x][y] > 8) return this.state;
 
         List<Pair<Integer, Integer>> around = this.getAround(x, y);
 

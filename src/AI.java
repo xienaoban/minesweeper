@@ -1,6 +1,8 @@
 import javafx.util.Pair;
 
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class AI {
     public static final int UNKNOWN = 0;
@@ -15,7 +17,7 @@ public class AI {
      * @return 周围的Unchecked格子全为（或全不为）雷、或未知
      */
     public static int checkUncoveredCellBasically(Game game, int x, int y) {
-        if (game.getPlayerBoard(x, y) < 0 || game.getPlayerBoard(x, y) > 8) return UNKNOWN;
+        if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
@@ -89,5 +91,34 @@ public class AI {
                 }
             }
         } while (swept);
+    }
+
+    public static int[][] findAllConnectedComponents(Game game) {
+        final int _VISITED = -233, _UNKNOWN = 0;
+        int[][] components = new int[game.getRow()][game.getCol()];
+        int id = 1;
+        for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+            if (components[i][j] != _UNKNOWN || game.getPlayerBoard(i, j) > 8) continue;
+            Queue<Pair<Integer, Integer>> que = new LinkedList<>();
+            que.offer(new Pair<>(i, j));
+            boolean findANewComponent = false;
+            while (!que.isEmpty()) {
+                Pair<Integer, Integer> cur = que.poll();
+                int cx = cur.getKey(), cy = cur.getValue();
+                if (components[cx][cy] == _VISITED) continue;
+                components[cx][cy] = _VISITED;
+                for (Pair<Integer, Integer> p : game.getAround(cx, cy)) {
+                    int px = p.getKey(), py = p.getValue();
+                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED) continue;
+                    findANewComponent = true;
+                    components[px][py] = id;
+                    for (Pair<Integer, Integer> p2 : game.getAround(px, py)) {
+                        if (game.getPlayerBoard(p2.getKey(), p2.getValue()) < 9) que.offer(p2);
+                    }
+                }
+            }
+            if (findANewComponent) ++id;
+        }
+        return components;
     }
 }

@@ -7,19 +7,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" beforeDir="false" afterPath="$PROJECT_DIR$/out/artifacts/Minesweeper_jar/Minesweeper.jar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/Chessboard.class" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/Main.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$BoardCanvas.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$CellCanvas.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI$TimeThread.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/UI.class" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/AI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Chessboard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Game.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Game.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Game.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/UI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/UI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/UI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GUI.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -142,7 +141,8 @@
       <workItem from="1587376989654" duration="680000" />
       <workItem from="1589339323029" duration="5961000" />
       <workItem from="1589769136627" duration="4400000" />
-      <workItem from="1590392335889" duration="3593000" />
+      <workItem from="1590392335889" duration="4125000" />
+      <workItem from="1592638980644" duration="7017000" />
     </task>
     <servers />
   </component>

@@ -6,13 +6,7 @@
     </artifacts-to-build>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/Minesweeper/AI.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/AI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/GUI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/GUI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Game.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Game.java" afterDir="false" />
-    </list>
+    <list default="true" id="bae7f5d7-514f-4152-94a3-feb089f3a022" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,7 +130,7 @@
       <workItem from="1589769136627" duration="4400000" />
       <workItem from="1590392335889" duration="4125000" />
       <workItem from="1592638980644" duration="12564000" />
-      <workItem from="1592802253551" duration="35465000" />
+      <workItem from="1592802253551" duration="35766000" />
     </task>
     <servers />
   </component>

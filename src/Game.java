@@ -25,6 +25,7 @@ public class Game {
     private int[][] playerBoard, lastPlayerBoard;
     private int clearCellLeft;
     private int mineLeft;
+    private int step;
 
     public Game(int row, int col, int mineCount) {
         this.initGame(row, col, mineCount, false, null);
@@ -56,6 +57,7 @@ public class Game {
         this.lastPlayerBoard = null;
         this.clearCellLeft = this.row * this.col - this.mineCount;
         this.mineLeft = this.mineCount;
+        this.step = 0;
     }
 
     private void initRandomMineBoard(int x, int y) {
@@ -115,6 +117,7 @@ public class Game {
     public int uncover(int x, int y) {
         if (this.state != PROCESS || !this.isXYLegal(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
         this.recordLastPlayerBoard();
+        ++this.step;
 
         if (this.mineBoard == null) this.initRandomMineBoard(x, y);
         if (this.mineBoard[x][y]) {
@@ -147,6 +150,7 @@ public class Game {
         if (this.state != PROCESS) return this.state;
         if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
             this.recordLastPlayerBoard();
+            ++this.step;
             this.playerBoard[x][y] = FLAG;
             --this.mineLeft;
         }
@@ -157,6 +161,7 @@ public class Game {
         if (this.state != PROCESS) return this.state;
         if (this.isXYLegal(x, y) && this.playerBoard[x][y] == FLAG) {
             this.recordLastPlayerBoard();
+            ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
             ++this.mineLeft;
         }
@@ -167,6 +172,7 @@ public class Game {
         if (this.state != PROCESS) return this.state;
         if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG)) {
             this.recordLastPlayerBoard();
+            ++this.step;
             this.playerBoard[x][y] = QUESTION;
         }
         return this.state;
@@ -176,6 +182,7 @@ public class Game {
         if (this.state != PROCESS) return this.state;
         if (this.isXYLegal(x, y) && this.playerBoard[x][y] == QUESTION) {
             this.recordLastPlayerBoard();
+            ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
         }
         return this.state;
@@ -193,6 +200,7 @@ public class Game {
         }
         if (flagCount != this.playerBoard[x][y]) return this.state;
         this.recordLastPlayerBoard();
+        ++this.step;
 
         boolean fail = false;
         for (Pair<Integer, Integer> point : around) {
@@ -228,6 +236,7 @@ public class Game {
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
     public int getMineLeft() { return this.mineLeft; }
+    public int getStep() {return this.step; }
 
     public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
     public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {

@@ -1,13 +1,14 @@
 import javafx.util.Pair;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class AI {
     public static final int UNKNOWN = 0;
     public static final int MINE = 1;
     public static final int NOT_MINE = -1;
+
+    public static final int CC_VISITED = -233;
+    public static final int CC_UNKNOWN = 0;
 
     /**
      * 仅通过检测周围8格，确定已知数字的格子周围剩下的未知格子是否全部为雷
@@ -16,7 +17,7 @@ public class AI {
      * @param y
      * @return 周围的Unchecked格子全为（或全不为）雷、或未知
      */
-    public static int checkUncoveredCellBasically(Game game, int x, int y) {
+    public static int checkUncoveredCellBasic(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
@@ -40,7 +41,7 @@ public class AI {
      * @param y
      * @return AI认为是有、无雷还是未知
      */
-    public static int checkUncheckedCellBasically(Game game, int x, int y) {
+    public static int checkUncheckedCellBasic(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) != Game.UNCHECKED
                 && game.getPlayerBoard(x, y) != Game.QUESTION) return UNKNOWN;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
@@ -48,8 +49,8 @@ public class AI {
             int px = p.getKey(), py = p.getValue();
             int pState = game.getPlayerBoard(px, py);
             if (pState >= 0 && pState <= 8) {
-                if (checkUncoveredCellBasically(game, px, py) == MINE) return MINE;
-                if (checkUncoveredCellBasically(game, px, py) == NOT_MINE) return NOT_MINE;
+                if (checkUncoveredCellBasic(game, px, py) == MINE) return MINE;
+                if (checkUncoveredCellBasic(game, px, py) == NOT_MINE) return NOT_MINE;
             }
         }
         return UNKNOWN;
@@ -60,9 +61,9 @@ public class AI {
      * @param game
      * @return int数组第一个值代表类型，第二、第三个值代表坐标
      */
-    public static int[] checkAllBasically(Game game) {
+    public static int[] checkAllBasic(Game game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
-            int type = checkUncheckedCellBasically(game, x, y);
+            int type = checkUncheckedCellBasic(game, x, y);
             if (type == UNKNOWN) continue;
             return new int[]{type, x, y};
         }
@@ -73,12 +74,12 @@ public class AI {
      * 仅通过周围八格信息，找出所有必为雷或必不为雷的格子
      * @param game
      */
-    public static void sweepAllBasically(Game game) {
+    public static void sweepAllBasic(Game game) {
         boolean swept;
         do {
             swept = false;
             for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
-                int type = checkUncoveredCellBasically(game, x, y);
+                int type = checkUncoveredCellBasic(game, x, y);
                 if (type == UNKNOWN) continue;
                 swept = true;
                 for (Pair<Integer, Integer> p : game.getAround(x, y)) {
@@ -93,32 +94,217 @@ public class AI {
         } while (swept);
     }
 
-    public static int[][] findAllConnectedComponents(Game game) {
-        final int _VISITED = -233, _UNKNOWN = 0;
-        int[][] components = new int[game.getRow()][game.getCol()];
+    /**
+     * 检查已知是数字的一个格子，判断对其周围是否是雷的判定是否合法
+     * @param game
+     * @param board 棋局。标记为 MINE 或 FLAG 说明判定为雷；标记为 NOT_MINE 说明判定为非雷
+     * @param x
+     * @param y
+     * @return 是否合法
+     */
+    public static boolean isUncoveredCellLegal(Game game, int[][] board, int x, int y) {
+        if (board[x][y] > 8) return false;
+        List<Pair<Integer, Integer>> list = game.getAround(x, y);
+        int mineCnt = 0, notMineCnt = 0, uncheckedCnt = 0;
+        for (Pair<Integer, Integer> p : list) {
+            switch (board[p.getKey()][p.getValue()]) {
+                case Game.FLAG:
+                case Game.MINE:
+                case Game.RED_MINE:
+                case Game.GRAY_MINE:
+                    ++mineCnt;
+                    break;
+                case Game.NOT_MINE:
+                    ++notMineCnt;
+                    break;
+                case Game.UNCHECKED:
+                case Game.QUESTION:
+                    ++uncheckedCnt;
+                    break;
+                default: break;
+            }
+        }
+        if (uncheckedCnt == 0) return mineCnt == board[x][y];
+        return mineCnt <= board[x][y] && mineCnt + uncheckedCnt >= board[x][y];
+    }
+
+    /**
+     * 检查一个非数字的格子，根据周围的数字格子判断该格子在被判定为是雷/非雷的情况下是否合法
+     * @param game
+     * @param board 棋局。标记为 MINE 或 FLAG 说明判定为雷；标记为 NOT_MINE 说明判定为非雷
+     * @param x
+     * @param y
+     * @return 是否合法
+     */
+    public static boolean isUncheckedCellLegal(Game game, int[][] board, int x, int y) {
+        if (board[x][y] < 9) return false;
+        for (Pair<Integer, Integer> p : game.getAround(x, y)) {
+            int px = p.getKey(), py = p.getValue();
+            if (board[px][py] < 9 && !isUncoveredCellLegal(game, board, px, py)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * 寻找所有连通分量
+     * 一个连通分量表示，有多种可能性且相互影响的一个区域
+     * @param game
+     * @return Pair 的 key 储存所有分量的所有点，value 为整个图
+     */
+    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(Game game) {
+        List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
+        int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
+        // 遍历每个点，找到第一个可能属于一个连通分量的点，并从该点扩散开来寻找其他属于该分量的点
         for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-            if (components[i][j] != _UNKNOWN || game.getPlayerBoard(i, j) > 8) continue;
+            if (ccGraph[i][j] != CC_UNKNOWN || game.getPlayerBoard(i, j) > 8) continue;
+            // 找到了一个可能的点。注意该点为已扫出数字的格子（因为一个数字格子周围的未知格子必属于同一分量）
+            // 该队列存储的点是已扫出数字的格子，这些个数字格子周围的未知格子也必属于同一分量
             Queue<Pair<Integer, Integer>> que = new LinkedList<>();
             que.offer(new Pair<>(i, j));
+            List<Pair<Integer, Integer>> points = new ArrayList<>();
             boolean findANewComponent = false;
+            // BFS 遍历周围的点，搜出整个连通分量
             while (!que.isEmpty()) {
                 Pair<Integer, Integer> cur = que.poll();
                 int cx = cur.getKey(), cy = cur.getValue();
-                if (components[cx][cy] == _VISITED) continue;
-                components[cx][cy] = _VISITED;
+                if (ccGraph[cx][cy] == CC_VISITED) continue;
+                ccGraph[cx][cy] = CC_VISITED;
+                // 遍历该数字格子周围的所有未知格子，它们属于同一个分量
                 for (Pair<Integer, Integer> p : game.getAround(cx, cy)) {
                     int px = p.getKey(), py = p.getValue();
-                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED) continue;
+                    if ((game.getPlayerBoard(px, py) != Game.UNCHECKED && game.getPlayerBoard(px, py) != Game.QUESTION)
+                            || ccGraph[px][py] == id) continue;
                     findANewComponent = true;
-                    components[px][py] = id;
+                    points.add(new Pair<>(px, py));
+                    ccGraph[px][py] = id;
+                    // 找出「数字格子周围的未知格子」的周围的其余数字格子，加入队列（有点绕）
                     for (Pair<Integer, Integer> p2 : game.getAround(px, py)) {
                         if (game.getPlayerBoard(p2.getKey(), p2.getValue()) < 9) que.offer(p2);
                     }
                 }
             }
-            if (findANewComponent) ++id;
+            if (findANewComponent) {
+                ccList.add(points);
+                ++id;
+            }
         }
-        return components;
+        // Debug 输出
+//        System.out.println("ccCnt: " + (id - 1));
+//        System.out.println(Arrays.deepToString(ccGraph)
+//                .replaceAll("-233", "n")
+//                .replaceAll("0", ".")
+//                .replaceAll(", \\[", "\n")
+//                .replaceAll("\\[", "")
+//                .replaceAll("\\]", "")
+//                .replaceAll(", ", "\t"));
+////        for (List<Pair<Integer, Integer>> p : ccList) {
+////            System.out.print("[" + p.get(0).getKey() + ", " + p.get(0).getValue() + "]-" + p.size() + ' ');
+////        }
+//        System.out.println();
+        return new Pair<>(ccList, ccGraph);
+    }
+
+    /**
+     * 计算每个格子有雷的概率（默认当前每个旗子设的都是对的，懒得自检了）
+     * @param game
+     * @return 每个格子的有雷概率
+     */
+    public static double[][] calculateProbability(Game game) {
+        double[][] prob = new double[game.getRow()][game.getCol()];
+        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponents(game);
+        List<List<Pair<Integer, Integer>>> ccList = _ccPair.getKey();
+        int[][] ccGraph = _ccPair.getValue();
+        double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
+
+        // 计算每个连通分量的每个点的有雷概率
+        for (List<Pair<Integer, Integer>> points : ccList) {
+            int permutationCnt = backtrackProbability(game, game.getPlayerBoard(), prob, points,
+                    game.getMineLeft(), 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，记得接收异常
+            for (Pair<Integer, Integer> p : points) {
+                int px = p.getKey(), py = p.getValue();
+                prob[px][py] /= permutationCnt;
+                avgPermMineCnt += prob[px][py];
+            }
+        }
+
+        // 所有未知孤立格子（即周围没有已知数字格子的格子）统一计算概率为“平均剩余雷数/未知孤立格子数”
+        int unknownCellCnt = 0;
+        for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+            if ((game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION)
+                    && ccGraph[i][j] == CC_UNKNOWN) ++unknownCellCnt;
+        }
+        if (unknownCellCnt > 0) {
+            double unknownCellProb = ((double) game.getMineLeft() - avgPermMineCnt) / (double) (unknownCellCnt);
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                if (ccGraph[i][j] == CC_UNKNOWN) {
+                    if (game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION) {
+                        prob[i][j] = unknownCellProb;
+                    }
+                    else if (game.getPlayerBoard(i, j) == Game.FLAG) prob[i][j] = 1.0;
+                }
+            }
+        }
+        // Debug 输出
+//        for (int i = 0; i < game.getRow(); ++i) {
+//            for (int j = 0; j < game.getCol(); ++j) System.out.print(String.format("%.3f ", prob[i][j]));
+//            System.out.println();
+//        }
+        return prob;
+    }
+
+    /**
+     * 进阶扫雷 AI，将所有概率为 100% 或 0% 的格子扫掉
+     * @param game
+     */
+    public static void sweepAllAdvanced(Game game) {
+        boolean loop = false;
+        do {
+            loop = false;
+            sweepAllBasic(game);
+            double[][] prob = calculateProbability(game);
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                if (prob[i][j] == 1 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
+                else if (prob[i][j] == 0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
+                    game.uncover(i, j);
+                    loop = true;
+                }
+            }
+        } while (loop && game.getGameState() == Game.PROCESS);
+    }
+
+    /**
+     * 使用回溯法，找出某连通分量中所有的雷的布局可能性
+     * @param game
+     * @param board 回溯时可被任意修改的棋盘（防止在游戏本体上修改出问题）
+     * @param nums 存储所有可能排列下，分量中每个格子是雷的情况个数
+     * @param points 一个连通分量所有的点
+     * @param cur 当前回溯位置的下标
+     * @return 可行排列总数
+     */
+    private static int backtrackProbability(Game game, int[][] board, double[][] nums,
+                                            List<Pair<Integer, Integer>> points, int mineLeft, int cur) {
+        // 成功找到一个可能的排列
+        if (cur >= points.size()) {
+            for (Pair<Integer, Integer> p : points) {
+                int px = p.getKey(), py = p.getValue();
+                if (board[px][py] == Game.MINE) ++nums[px][py];
+            }
+            return 1;
+        }
+
+        // 分别递归考虑当前格子是雷、不是雷的情况
+        int x = points.get(cur).getKey(), y = points.get(cur).getValue();
+        int res = 0;
+        board[x][y] = Game.MINE;
+        if (mineLeft > 0 && isUncheckedCellLegal(game, board, x, y)) {
+            res += backtrackProbability(game, board, nums, points, mineLeft - 1, cur + 1);
+        }
+        board[x][y] = Game.NOT_MINE;
+        if (isUncheckedCellLegal(game, board, x, y)) {
+            res += backtrackProbability(game, board, nums, points, mineLeft, cur + 1);
+        }
+        board[x][y] = Game.UNCHECKED;
+        return res;
     }
 }

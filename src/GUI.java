@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class GUI extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.getContentPane().setLayout(null);
         this.getContentPane().setBackground(new Color(192, 192, 192));
-        this.cellLength = 28;
+        this.cellLength = 30;
         this.showMine = false;
         this.initMenu();
         this.initGame(9, 9, 10, false);
@@ -83,10 +82,16 @@ public class GUI extends JFrame {
         cheatMenu.add(unluckyMenuItem);
 
 
-        JMenuItem checkBasicallyMenuItem = new JMenuItem("提示一格");
-        JMenuItem sweepBasicallyMenuItem = new JMenuItem("简易扫扫");
-        aiMenu.add(checkBasicallyMenuItem);
-        aiMenu.add(sweepBasicallyMenuItem);
+        JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（基础AI）");
+        JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（基础AI）");
+        JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（进阶AI）");
+        JMenuItem sweepToEndMenuItem = new JMenuItem("扫到结束（进阶AI）");
+        JMenuItem aiDebugMenuItem = new JMenuItem("展示概率");
+        aiMenu.add(checkBasicMenuItem);
+        aiMenu.add(sweepBasicMenuItem);
+        aiMenu.add(sweepAdvancedMenuItem);
+        aiMenu.add(sweepToEndMenuItem);
+        aiMenu.add(aiDebugMenuItem);
 
         JMenuItem aboutMenuItem         = new JMenuItem("作者: 蟹恼板");
         aboutMenu.add(aboutMenuItem);
@@ -150,37 +155,60 @@ public class GUI extends JFrame {
             }
         });
 
-        checkBasicallyMenuItem.addActionListener(e -> {
-            int[] res = AI.checkAllBasically(game);
-            System.out.println(Arrays.deepToString(AI.findAllConnectedComponents(game))
-                    .replaceAll("-233", "n")
-                    .replaceAll("0", ".")
-                    .replaceAll(", \\[", "\n")
-                    .replaceAll("\\[", "")
-                    .replaceAll("\\]", "")
-                    .replaceAll(", ", "\t"));
-            if (res[0] != AI.UNKNOWN) {
-                new Thread() {
-                    public void run() {
-                        int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
-                        int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
-                        try {
-                            for (int i = 0; i < 3; ++ i) {
-                                canvas.highlight(arr1); Thread.sleep(150);
-                                canvas.highlight(arr0); Thread.sleep(100);
-                            }
-                            canvas.highlight(null);
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
+        checkBasicMenuItem.addActionListener(e -> {
+            new Thread() {
+                public void run() {
+                    int[] res = AI.checkAllBasic(game);
+                    if (res[0] == AI.UNKNOWN) return;
+                    int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
+                    int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
+                    try {
+                        for (int i = 0; i < 3; ++ i) {
+                            canvas.highlight(arr1); Thread.sleep(150);
+                            canvas.highlight(arr0); Thread.sleep(100);
                         }
+                        canvas.highlight(null);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
                     }
-                }.start();
-            }
+                }
+            }.start();
         });
 
-        sweepBasicallyMenuItem.addActionListener(e -> {
-            AI.sweepAllBasically(game);
+        sweepBasicMenuItem.addActionListener(e -> {
+            new Thread() {
+                public void run() {
+                    canvas.doNotUpdateTheFuckingCanvasNow(true);
+                    AI.sweepAllBasic(game);
+                    canvas.doNotUpdateTheFuckingCanvasNow(false);
+                    setFrameAfterOperation();
+                }
+            }.start();
+        });
+
+        sweepAdvancedMenuItem.addActionListener(e -> {
+            new Thread() {
+                public void run() {
+                    canvas.doNotUpdateTheFuckingCanvasNow(true);
+                    AI.sweepAllAdvanced(game);
+                    canvas.doNotUpdateTheFuckingCanvasNow(false);
+                    setFrameAfterOperation();
+                }
+            }.start();
+        });
+
+        sweepToEndMenuItem.addActionListener(e -> {
             setFrameAfterOperation();
+        });
+
+        aiDebugMenuItem.addActionListener(e -> {
+            new Thread() {
+                public void run() {
+                    int[][] cc = AI.findAllConnectedComponents(game).getValue();
+                    double[][] prob = AI.calculateProbability(game);
+                    canvas.setConnectedComponentsAndProbability(cc, prob);
+                }
+            }.start();
         });
 
         aboutMenuItem.addActionListener(e -> {
@@ -194,7 +222,7 @@ public class GUI extends JFrame {
 
         Color panelForeColor = new Color(146, 26, 33);
         Color panelBackColor = new Color(20, 0, 0);
-        Font panelFont = new Font("Consolas",Font.BOLD, cellLength);
+        Font panelFont = new Font("Consolas",Font.BOLD, 28);
         Container container = this.getContentPane();
 
         this.mineLabel = new JLabel("0000", SwingConstants.CENTER);
@@ -312,15 +340,22 @@ public class GUI extends JFrame {
         private int mouseX, mouseY;
         private boolean mouseLeft, mouseRight, mouseBoth;
         private int[][] lastPlayerBoard;
-        private Font font;
+        private Font font, debugFont;
         private Image buffer;
         private int[][] highlightArr;
+        private int[][] connectedComponents;
+        private double[][] probability;
+        private int step;
+        private boolean dontUpdate;
 
         BoardCanvas() {
             this.mouseX = this.mouseY = -1;
             this.mouseLeft = this.mouseRight = this.mouseBoth = false;
             this.font = new Font("Consolas",Font.BOLD, cellLength);
+            this.debugFont = new Font("等线",Font.BOLD, (int)(cellLength / 3));
             this.highlightArr = null;
+            this.step = 0;
+            this.dontUpdate = false;
 
             this.setBounds(10, 15 + INFO_HEIGHT, col * cellLength, row * cellLength);
             this.addMouseListener(this);
@@ -328,6 +363,13 @@ public class GUI extends JFrame {
         }
 
         private void drawBoard(Graphics gPanel) {
+            if (this.dontUpdate) return;
+            if (this.step < game.getStep() && this.probability != null) {
+                this.probability = null;
+                this.connectedComponents = null;
+                this.lastPlayerBoard = null;
+            }
+            this.step = game.getStep();
             if (this.buffer == null) this.buffer = this.createImage(this.getWidth(), this.getHeight());
             Graphics2D g = (Graphics2D) this.buffer.getGraphics();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -338,7 +380,7 @@ public class GUI extends JFrame {
                 for (int[] p : this.highlightArr) {
                     if (p.length == 1) { state = p[0]; continue; }
                     int x = p[0], y = p[1];
-                    this.drawCell(x, y, state == AI.MINE ? Game.MINE :  game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
+                    this.drawCell(x, y, state == AI.MINE ? Game.MINE : game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
                 }
             }
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
@@ -394,6 +436,7 @@ public class GUI extends JFrame {
                         case Game.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
                     }
                 }
+                if (this.probability != null && state == Game.UNCHECKED) this.drawDebug(px, py, g);
             }
             else {
                 this.drawPressedVoidCell(px, py, g);
@@ -452,6 +495,21 @@ public class GUI extends JFrame {
             g.setColor(Color.RED);
             g.drawString(s, px + (cellLength - fontWidth) / 2, py + (cellLength + fontHeight / 2) / 2);
         }
+        private void drawDebug(int px, int py, Graphics2D g) {
+            String s = String.format("%.2f", this.probability[posYToIdxX(py)][posXToIdxY(px)]);
+            g.setFont(this.debugFont);
+            FontMetrics fm = g.getFontMetrics(this.debugFont);
+            int fontWidth = fm.stringWidth(s);
+            int fontHeight = fm.getHeight();
+            Color color = Color.DARK_GRAY;
+            if (this.connectedComponents != null) {
+                int id = this.connectedComponents[posYToIdxX(py)][posXToIdxY(px)];
+                if (id > 0) color = this.COLOR[(id - 1) % 6 + 1];
+            }
+            g.setColor(color);
+            g.drawString(s, px + (cellLength - fontWidth) / 2, py + (cellLength + fontHeight / 2) / 2);
+            g.setFont(this.font);
+        }
 
         private int posYToIdxX(int y) { return y / cellLength; }
         private int posXToIdxY(int x) { return x / cellLength; }
@@ -461,6 +519,7 @@ public class GUI extends JFrame {
         public void requestRepaintAll() {
             this.setSize(col * cellLength, row * cellLength);
             this.font = new Font("Consolas",Font.BOLD, cellLength);
+            this.debugFont = new Font("等线",Font.BOLD, (int)(cellLength / 3));
             this.buffer = null;
             this.lastPlayerBoard = null;
             this.repaint();
@@ -469,6 +528,17 @@ public class GUI extends JFrame {
         public void highlight(int[][] arr) {
             this.highlightArr = arr;
             this.repaint();
+        }
+
+        public void setConnectedComponentsAndProbability(int[][] cc, double[][] prob) {
+            this.connectedComponents = cc;
+            this.probability = prob;
+            this.lastPlayerBoard = null;
+            this.repaint();
+        }
+
+        public void doNotUpdateTheFuckingCanvasNow(boolean dont) {
+            this.dontUpdate = dont;
         }
 
         @Override
@@ -483,6 +553,7 @@ public class GUI extends JFrame {
         public void mouseClicked(MouseEvent e) { }
         @Override
         public void mousePressed(MouseEvent e) {
+            if (this.dontUpdate) return;
             if (game.getGameState() != Game.PROCESS) return;
             faceCanvas.setEmoji(FACE_PRESS);
             this.mouseX = this.posYToIdxX(e.getY());
@@ -494,6 +565,7 @@ public class GUI extends JFrame {
         }
         @Override
         public void mouseReleased(MouseEvent e) {
+            if (this.dontUpdate) return;
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) {
@@ -524,6 +596,7 @@ public class GUI extends JFrame {
         public void mouseExited(MouseEvent e) { }
         @Override
         public void mouseDragged(MouseEvent e) {
+            if (this.dontUpdate) return;
             int lastMouseX = this.mouseX;
             int lastMouseY = this.mouseY;
             this.mouseX = this.posYToIdxX(e.getY());

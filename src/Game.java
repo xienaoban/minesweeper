@@ -3,8 +3,8 @@ import java.util.*;
 
 public class Game {
     // state of game
-    public static final int SUCCESS = 1;
-    public static final int FAIL = -1;
+    public static final int WIN = 1;
+    public static final int LOSE = -1;
     public static final int PROCESS = 0;
 
     // state of player's board
@@ -122,7 +122,7 @@ public class Game {
         if (this.mineBoard == null) this.initRandomMineBoard(x, y);
         if (this.mineBoard[x][y]) {
             this.playerBoard[x][y] = NOT_MINE;
-            return this.endAndPublishMineBoard(FAIL);
+            return this.endAndPublishMineBoard(LOSE);
         }
 
         Queue<Pair<Integer, Integer>> queue = new LinkedList<>();
@@ -142,7 +142,7 @@ public class Game {
                 if (this.playerBoard[px][py] == UNCHECKED) queue.offer(new Pair<>(px, py));
             }
         }
-        if (this.clearCellLeft == 0) this.endAndPublishMineBoard(SUCCESS);
+        if (this.clearCellLeft == 0) this.endAndPublishMineBoard(WIN);
         return this.state;
     }
 
@@ -215,7 +215,7 @@ public class Game {
                 this.playerBoard[px][py] = NOT_MINE;
             }
         }
-        if (fail) return this.endAndPublishMineBoard(FAIL);
+        if (fail) return this.endAndPublishMineBoard(LOSE);
 
         for (Pair<Integer, Integer> point : around) this.uncover(point.getKey(), point.getValue());
         return this.state;
@@ -318,6 +318,8 @@ public class Game {
     public void printPlayerBoardToConsole() {
         if (this.mineBoard == null) System.out.println("null");
         else {
+            for (int i = 0; i < this.col; ++i) System.out.print("---");
+            System.out.println();
             for (int[] i : this.playerBoard) {
                 for (int j : i) {
                     switch (j) {
@@ -332,6 +334,8 @@ public class Game {
                 }
                 System.out.println();
             }
+            for (int i = 0; i < this.col; ++i) System.out.print("---");
+            System.out.println();
         }
     }
 }

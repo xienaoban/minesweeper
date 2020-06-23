@@ -88,7 +88,7 @@ public class AI {
                             && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
                     if (type == MINE) game.setFlag(px, py);
                     else if (type == NOT_MINE) game.uncover(px, py);
-                    if (game.getGameState() == Game.FAIL) return;
+                    if (game.getGameState() == Game.LOSE) return;
                 }
             }
         } while (swept);
@@ -151,7 +151,7 @@ public class AI {
      * @param game
      * @return Pair 的 key 储存所有分量的所有点，value 为整个图
      */
-    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(Game game) {
+    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponent(Game game) {
         List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
         int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
@@ -189,19 +189,7 @@ public class AI {
                 ++id;
             }
         }
-        // Debug 输出
-//        System.out.println("ccCnt: " + (id - 1));
-//        System.out.println(Arrays.deepToString(ccGraph)
-//                .replaceAll("-233", "n")
-//                .replaceAll("0", ".")
-//                .replaceAll(", \\[", "\n")
-//                .replaceAll("\\[", "")
-//                .replaceAll("\\]", "")
-//                .replaceAll(", ", "\t"));
-////        for (List<Pair<Integer, Integer>> p : ccList) {
-////            System.out.print("[" + p.get(0).getKey() + ", " + p.get(0).getValue() + "]-" + p.size() + ' ');
-////        }
-//        System.out.println();
+//        printConnectedComponent(ccGraph);
         return new Pair<>(ccList, ccGraph);
     }
 
@@ -212,7 +200,7 @@ public class AI {
      */
     public static double[][] calculateProbability(Game game) {
         double[][] prob = new double[game.getRow()][game.getCol()];
-        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponents(game);
+        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponent(game);
         List<List<Pair<Integer, Integer>>> ccList = _ccPair.getKey();
         int[][] ccGraph = _ccPair.getValue();
         double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
@@ -245,11 +233,7 @@ public class AI {
                 }
             }
         }
-        // Debug 输出
-//        for (int i = 0; i < game.getRow(); ++i) {
-//            for (int j = 0; j < game.getCol(); ++j) System.out.print(String.format("%.3f ", prob[i][j]));
-//            System.out.println();
-//        }
+//        printProbability(prob);
         return prob;
     }
 
@@ -258,19 +242,59 @@ public class AI {
      * @param game
      */
     public static void sweepAllAdvanced(Game game) {
-        boolean loop = false;
-        do {
+        boolean loop = true;
+        while (loop && game.getGameState() == Game.PROCESS) {
             loop = false;
             sweepAllBasic(game);
+            if (game.getGameState() != Game.PROCESS) break;
             double[][] prob = calculateProbability(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                if (prob[i][j] == 1 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
-                else if (prob[i][j] == 0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
+                // 由于我没有在不同连通分量之间建立联系，所以即便算出来为雷概率为 100% 也不一定准，也可能把旗标到了
+                // 非雷的格子里，导致最后整个图都标满了但游戏还未结束，所以就不在此标雷了
+//                if (prob[i][j] == 1 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
+                if (prob[i][j] == 0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
                     game.uncover(i, j);
                     loop = true;
                 }
             }
-        } while (loop && game.getGameState() == Game.PROCESS);
+        }
+    }
+
+    /**
+     * 完整地玩一局扫雷
+     * 猜雷就是在本方法实现的
+     * @param game
+     */
+    public static void sweepToEnd(Game game) {
+        while (game.getGameState() == Game.PROCESS) {
+            sweepAllAdvanced(game);
+            if (game.getGameState() != Game.PROCESS) break;
+            double[][] prob = calculateProbability(game);
+            int maxX = -1, maxY = -1, corner = -1, intensity = 1;
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                int cellState = game.getPlayerBoard(i, j);
+                if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
+                // 同概率的话在角落的格子优先探测，抗疫将概率从 29% 提升到 33%
+                if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
+                    int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
+                    if (i == 0 || i == game.getRow() - 1) ++cor;
+                    if (j == 0 || j == game.getCol() - 1) ++cor;
+                    if ((cor == 2 && cor > corner) || (corner < 2 && in > intensity)) {
+                        maxX = i;
+                        maxY = j;
+                        corner = cor;
+                        intensity = in;
+                    }
+                }
+                else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) {
+                    maxX = i;
+                    maxY = j;
+                }
+            }
+            // 只找 prob 低的 uncover，不找 prob 高的 setFlag，因为 setFlag 不影响游戏状态，
+            // 可能会出现找不到 max_x 的情况。
+            game.uncover(maxX, maxY);
+        }
     }
 
     /**
@@ -306,5 +330,42 @@ public class AI {
         }
         board[x][y] = Game.UNCHECKED;
         return res;
+    }
+
+    private static int getNumberCellCntAround(Game game, int x, int y, int radius) {
+        int res = 0;
+        for (int i = x - radius + 1; i < x + radius; ++i) for (int j = y - radius + 1; j < y + radius; ++j) {
+            if (i < 0 || i >= game.getRow() || j < 0 || j >= game.getCol()) continue;
+            if (i == x && j == y) continue;
+            if (game.getPlayerBoard(x, y) < 9) ++res;
+        }
+        return res;
+    }
+
+    public static void printConnectedComponent(int[][] cc) {
+        for (int i = 0; i < cc[0].length; ++i) System.out.print("---");
+        System.out.println();
+        for (int i = 0; i < cc.length; ++i) {
+            for (int j = 0; j < cc[0].length; ++j) {
+                String s = String.valueOf(cc[i][j]);
+                if (cc[i][j] == -233) s = ".";
+                else if (cc[i][j] == 0) s = " ";
+                System.out.print(" " + s + " ");
+            }
+            System.out.println();
+        }
+        for (int i = 0; i < cc[0].length; ++i) System.out.print("---");
+        System.out.println();
+    }
+
+    public static void printProbability(double[][] prob) {
+        for (int i = 0; i < prob[0].length; ++i) System.out.print("-------");
+        System.out.println();
+        for (int i = 0; i < prob.length; ++i) {
+            for (int j = 0; j < prob[0].length; ++j) System.out.print(String.format(" %.3f ", prob[i][j]));
+            System.out.println();
+        }
+        for (int i = 0; i < prob[0].length; ++i) System.out.print("-------");
+        System.out.println();
     }
 }

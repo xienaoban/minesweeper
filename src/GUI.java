@@ -198,13 +198,20 @@ public class GUI extends JFrame {
         });
 
         sweepToEndMenuItem.addActionListener(e -> {
-            setFrameAfterOperation();
+            new Thread() {
+                public void run() {
+                    canvas.doNotUpdateTheFuckingCanvasNow(true);
+                    AI.sweepToEnd(game);
+                    canvas.doNotUpdateTheFuckingCanvasNow(false);
+                    setFrameAfterOperation();
+                }
+            }.start();
         });
 
         aiDebugMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
-                    int[][] cc = AI.findAllConnectedComponents(game).getValue();
+                    int[][] cc = AI.findAllConnectedComponent(game).getValue();
                     double[][] prob = AI.calculateProbability(game);
                     canvas.setConnectedComponentsAndProbability(cc, prob);
                 }
@@ -314,11 +321,11 @@ public class GUI extends JFrame {
     private void setFrameAfterOperation() {
         this.canvas.repaint();
         switch (this.game.getGameState()) {
-            case Game.SUCCESS:
+            case Game.WIN:
                 faceCanvas.setEmoji(FACE_WIN);
                 this.timeThread.interrupt();
                 break;
-            case Game.FAIL:
+            case Game.LOSE:
                 faceCanvas.setEmoji(FACE_LOSE);
                 this.timeThread.interrupt();
                 break;

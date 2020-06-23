@@ -85,8 +85,8 @@ public class GUI extends JFrame {
         JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（基础AI）");
         JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（基础AI）");
         JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（进阶AI）");
-        JMenuItem sweepToEndMenuItem = new JMenuItem("扫到结束（进阶AI）");
-        JMenuItem aiDebugMenuItem = new JMenuItem("展示概率");
+        JMenuItem sweepToEndMenuItem = new JMenuItem("扫完它");
+        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率（不一定准）");
         aiMenu.add(checkBasicMenuItem);
         aiMenu.add(sweepBasicMenuItem);
         aiMenu.add(sweepAdvancedMenuItem);
@@ -112,7 +112,7 @@ public class GUI extends JFrame {
                 int r = Integer.parseInt(arr[0]);
                 int c = Integer.parseInt(arr[1]);
                 int m = Integer.parseInt(arr[2]);
-                if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("你丫是不是数学不好¿");
+                if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("数字范围不对。");
                 initGame(r, c, m, cheat);
             }
             catch (NullPointerException ignored) {}
@@ -133,7 +133,7 @@ public class GUI extends JFrame {
         });
 
         cheatMenuItem.addActionListener(e -> {
-            int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会启用新局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
+            int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会新开一局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
             if (res != 0) return;
             cheat = !cheat;
             if (!cheat) showMine = false;

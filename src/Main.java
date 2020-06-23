@@ -3,8 +3,8 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        testAI(10000);
-//        new GUI();
+        new GUI();
+//        testAI(10000);
 //        CLI();
     }
 
@@ -57,17 +57,17 @@ public class Main {
         th.start();
         for (int t = 1; t <= times; ++t) {
             time = new Date();
-//            game = new Game(9, 9, 10);
+            game = new Game(9, 9, 10);
 //            game = new Game(16, 16, 40);
-            game = new Game(16, 30, 99);
-//            final boolean O = true, x = false;
-//            game = new Game(new boolean[][] {
-//                    {x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, x, x},
-//                    {x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, O, x},
-//                    {x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x},
-//                    {x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, x, x},
-//                    {x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x, O, x},
-//                    {x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, x, x, O, x, O, x}
+//            game = new Game(16, 30, 99);
+//            final boolean T = true, F = false;
+//            game = new Game(new boolean[][] { // 超大连通分量导致概率计算巨卡的案例
+//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, F, F},
+//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F},
+//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
+//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F},
+//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
+//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F}
 //            });
             AI.sweepToEnd(game);
             boolean win = game.getGameState() == Game.WIN;

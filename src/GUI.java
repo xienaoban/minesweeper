@@ -86,7 +86,7 @@ public class GUI extends JFrame {
         JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（基础AI）");
         JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（进阶AI）");
         JMenuItem sweepToEndMenuItem = new JMenuItem("扫完它");
-        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率（不一定准）");
+        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率");
         aiMenu.add(checkBasicMenuItem);
         aiMenu.add(sweepBasicMenuItem);
         aiMenu.add(sweepAdvancedMenuItem);

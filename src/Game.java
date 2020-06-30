@@ -2,12 +2,12 @@ import javafx.util.Pair;
 import java.util.*;
 
 public class Game {
-    // state of game
+    // 游戏状态
     public static final int WIN = 1;
     public static final int LOSE = -1;
     public static final int PROCESS = 0;
 
-    // state of player's board
+    // 玩家视图中每个格子的状态
     public static final int UNCHECKED = 11;
     public static final int FLAG = 101;
     public static final int QUESTION = 102;
@@ -16,16 +16,16 @@ public class Game {
     public static final int RED_MINE = 113;
     public static final int GRAY_MINE = 114;
 
-    private int state;
-
-    private boolean cheat, showMine;
-    private int row, col;
-    private int mineCount;
-    private boolean[][] mineBoard;
-    private int[][] playerBoard, lastPlayerBoard;
-    private int clearCellLeft;
-    private int mineLeft;
-    private int step;
+    // 游戏内部变量
+    private int state;                              // 游戏状态（胜/负/进行中）
+    private boolean cheat, showMine, win7Mode;      // 作弊与否、是否显示地雷（需要作弊）、模式（WinXP 或 Win7）
+    private int row, col;                           // 行、列数
+    private int mineCount;                          // 地雷总数
+    private boolean[][] mineBoard;                  // 地雷视图（true 为雷，false 非雷）
+    private int[][] playerBoard, lastPlayerBoard;   // 当前的玩家视图，上一步的玩家视图（用于撤销）
+    private int clearCellLeft;                      // 剩余的未知格子（UNCHECKED 的格子）
+    private int mineLeft;                           // 剩余的雷（= 地雷总数 - 小旗数，所以可为负数）
+    private int step;                               // 执行了多少步数（揭开、标旗、标问号等操作均算一步）
 
     public Game(int row, int col, int mineCount) {
         this.initGame(row, col, mineCount, false, null);
@@ -58,19 +58,21 @@ public class Game {
         this.clearCellLeft = this.row * this.col - this.mineCount;
         this.mineLeft = this.mineCount;
         this.step = 0;
+        this.win7Mode = true;
     }
 
     private void initRandomMineBoard(int x, int y) {
         this.mineBoard = new boolean[this.row][this.col];
-        int idx = x * this.col + y;
+        final int radius = this.win7Mode ? 2 : 1;
         List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < idx; i++) list.add(i);
-        for (int i = idx + 1; i < this.row * this.col; i++) list.add(i);
+        for (int i = 0; i < this.row * this.col; ++i) list.add(i);
         Collections.shuffle(list);
-        for (int i = 0; i < this.mineCount; ++i) {
-            int ix = list.get(i) / this.col;
-            int iy = list.get(i) % this.col;
-            this.mineBoard[ix][iy] = true;
+        int mine = this.mineCount;
+        for (int p : list) {
+            int px = p / this.col, py = p % this.col;
+            if (Math.abs(px - x) < radius && Math.abs(py - y) < radius) continue;
+            this.mineBoard[px][py] = true;
+            if (--mine <= 0) break;
         }
     }
 
@@ -121,7 +123,7 @@ public class Game {
 
         if (this.mineBoard == null) this.initRandomMineBoard(x, y);
         if (this.mineBoard[x][y]) {
-            this.playerBoard[x][y] = NOT_MINE;
+            this.playerBoard[x][y] = RED_MINE;
             return this.endAndPublishMineBoard(LOSE);
         }
 

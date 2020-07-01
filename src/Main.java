@@ -3,8 +3,8 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-//        new GUI();
-        testAI(1000);
+        new GUI();
+//        testAI(10000);
 //        CLI();
     }
 

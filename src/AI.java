@@ -278,25 +278,26 @@ public class AI {
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 int cellState = game.getPlayerBoard(i, j);
                 if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
-                // 同概率的话在角落的格子优先探测，抗疫将概率从 29% 提升到 33%
+                if (maxX != -1 && prob[i][j] > prob[maxX][maxY]) continue;
+                boolean newMax = false;
+                int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
+                if (i == 0 || i == game.getRow() - 1) ++cor;
+                if (j == 0 || j == game.getCol() - 1) ++cor;
                 if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
-                    int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
-                    if (i == 0 || i == game.getRow() - 1) ++cor;
-                    if (j == 0 || j == game.getCol() - 1) ++cor;
-                    if ((cor == 2 && cor > corner) || (corner < 2 && in > intensity)) {
-                        maxX = i;
-                        maxY = j;
-                        corner = cor;
-                        intensity = in;
-                    }
+                    // 同概率的话在角落的格子优先探测，可以将概率从 29% 提升到 33%。
+                    // 或者当两者都在（或都不在）角落时，选择周围 24 格数字格子更多的。
+                    // 但是如你所见，我的 intensity 变量初始化为了 1 而不是 0 或负数，
+                    // 因为我发现初始化为 1 比初始化为 0 胜率高了 2%……很迷很玄学。
+                    if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
                 }
-                else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) {
-                    maxX = i;
-                    maxY = j;
-                }
+                else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
+                if (!newMax) continue;
+                maxX = i;
+                maxY = j;
+                corner = cor;
+                intensity = in;
             }
-            // 只找 prob 低的 uncover，不找 prob 高的 setFlag，因为 setFlag 不影响游戏状态，
-            // 可能会出现找不到 max_x 的情况。
+            // 只找 prob 低的 uncover，不找 prob 高的 setFlag，因为 setFlag 不影响游戏状态，标错了也不知道。
             game.uncover(maxX, maxY);
         }
     }

@@ -367,6 +367,7 @@ public class Game {
     public int getMineCount() { return this.mineCount; }
     public int getMineLeft() { return this.mineLeft; }
     public int getStep() {return this.step; }
+    public int getGameRule() {return this.gameRule; }
 
     public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
     public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {

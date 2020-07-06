@@ -1,4 +1,5 @@
 import javafx.util.Pair;
+import org.omg.PortableInterceptor.INACTIVE;
 
 import java.util.*;
 
@@ -22,7 +23,7 @@ public class AI {
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
-     * @return 周围的Unchecked格子全为（或全不为）雷、或未知
+     * @return 周围的 Unchecked 格子全为（或全不为）雷、或未知
      */
     public static int checkOneUncoveredCell(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
@@ -48,29 +49,40 @@ public class AI {
      * @param y1 第一个目标格子 y 坐标
      * @param x2 第二个目标格子 x 坐标
      * @param y2 第二个目标格子 y 坐标
-     * @return
+     * @return 返回以 Pair 存储的两个值, key 和 value 分别为「可揭开的格子列表」与「可标雷的格子列表」
      */
-    public static int checkTwoUncoveredCell(Game game, int x1, int y1, int x2, int y2) {
+    public static Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> checkTwoUncoveredCell(
+            Game game, int x1, int y1, int x2, int y2) {
         int num1 = game.getPlayerBoard(x1, y1), num2 = game.getPlayerBoard(x2, y2);
-        if (num1 > 8 || num2 > 8) return UNKNOWN;
+        if (num1 > 8 || num2 > 8) return null;
         int diffX = x2 - x1, diffY = y2 - y1;
+        if (Math.abs(diffX) + Math.abs(diffY) != 1) return null;
+        List<Pair<Integer, Integer>> around1 = new ArrayList<>(3);
+        List<Pair<Integer, Integer>> around2 = new ArrayList<>(3);
         for (int i = -1; i < 2; ++i) {
-            int p1 = game.getPlayerBoard(x1 - diffX + diffY * i, y1 - diffY + diffX * i);
-            if (p1 == Game.FLAG) --num1;
-            else if (p1 == Game.UNCHECKED) {
-
+            int xx1 = x1 - diffX + diffY * i, yy1 = y1 - diffY + diffX * i;
+            if (game.isPointInRange(xx1, yy1)) {
+                int pp1 = game.getPlayerBoard(xx1, yy1);
+                if (pp1 == Game.FLAG) --num1;
+                else if (pp1 == Game.UNCHECKED) around1.add(new Pair<>(xx1, yy1));
             }
-            int p2 = game.getPlayerBoard(x2 + diffX + diffY * i, y2 + diffY + diffX * i);
-            if (p2 == Game.FLAG) --num2;
-            else if (p2 == Game.UNCHECKED) {
 
+            int xx2 = x2 + diffX + diffY * i, yy2 = y2 + diffY + diffX * i;
+            if (game.isPointInRange(xx2, yy2)) {
+                int pp2 = game.getPlayerBoard(xx2, yy2);
+                if (pp2 == Game.FLAG) --num2;
+                else if (pp2 == Game.UNCHECKED) around2.add(new Pair<>(xx2, yy2));
             }
         }
-        return UNKNOWN;
+        Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res = null;
+        if (num2 - num1 - around2.size() == 0) res = new Pair<>(around1, around2);
+        else if (num1 - num2 - around1.size() == 0) res = new Pair<>(around2, around1);
+        return res;
     }
 
     /**
      * 仅通过检测周围8格，确定目标未知格子是否有雷
+     * 要先找出周围所有数字格子，再逐个判断数字格子周围8格，最终判断范围达到了 5*5 格，不建议使用该函数
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
@@ -83,9 +95,9 @@ public class AI {
         for (Pair<Integer, Integer> p : around) {
             int px = p.getKey(), py = p.getValue();
             int pState = game.getPlayerBoard(px, py);
-            if (pState >= 0 && pState <= 8) {
-                if (checkOneUncoveredCell(game, px, py) == MINE) return MINE;
-                if (checkOneUncoveredCell(game, px, py) == NOT_MINE) return NOT_MINE;
+            if (pState < 9) {
+                int state = checkOneUncoveredCell(game, px, py);
+                if (state != UNKNOWN) return state;
             }
         }
         return UNKNOWN;
@@ -115,15 +127,33 @@ public class AI {
             swept = false;
             for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
                 int type = checkOneUncoveredCell(game, x, y);
-                if (type == UNKNOWN) continue;
-                swept = true;
-                for (Pair<Integer, Integer> p : game.getAround(x, y)) {
-                    int px = p.getKey(), py = p.getValue();
-                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED
-                            && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
-                    if (type == MINE) game.setFlag(px, py);
-                    else if (type == NOT_MINE) game.uncover(px, py);
-                    if (game.getGameState() == Game.LOSE) return;
+                if (type != UNKNOWN) {
+                    swept = true;
+                    for (Pair<Integer, Integer> p : game.getAround(x, y)) {
+                        int px = p.getKey(), py = p.getValue();
+                        if (game.getPlayerBoard(px, py) != Game.UNCHECKED
+                                && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
+                        if (type == MINE) game.setFlag(px, py);
+                        else if (type == NOT_MINE) game.uncover(px, py);
+                        if (game.getGameState() == Game.LOSE) return;
+                    }
+                }
+
+                for (int i = 0; i < 2; ++i) {
+                    int x2 = x + i, y2 = y + 1 - i;
+                    if (!game.isPointInRange(x2, y2)) continue;
+                    Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> _pair
+                            = checkTwoUncoveredCell(game, x, y, x2, y2);
+                    if (_pair != null) {
+                        if (_pair.getKey().size() + _pair.getValue().size() > 0) swept = true;
+                        for (Pair<Integer, Integer> p : _pair.getKey()) {
+                            game.uncover(p.getKey(), p.getValue());
+                            if (game.getGameState() == Game.LOSE) return;
+                        }
+                        for (Pair<Integer, Integer> p : _pair.getValue()) {
+                            game.setFlag(p.getKey(), p.getValue());
+                        }
+                    }
                 }
             }
         } while (swept);

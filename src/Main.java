@@ -1,3 +1,6 @@
+import javafx.util.Pair;
+
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -25,8 +28,9 @@ public class Main {
      */
     private static void CLI() {
         Scanner sc = new Scanner(System.in);
-        System.out.print("输入 行 列 雷数：");
-        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
+//        System.out.print("输入 行 列 雷数：");
+//        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
+        Game game = new Game(16, 30, 99);
         while (true) {
             System.out.print("输入 操作码 x y：");
             int op = sc.nextInt();
@@ -38,6 +42,20 @@ public class Main {
                 case 1: sucess = game.cycFlagAndQuestion(x, y); break;
                 case 2: sucess = game.check(x, y); break;
                 case 3: AI.sweepToEnd(game); ;sucess = game.getGameState(); break;
+                case 4:
+                    Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res =
+                            AI.checkTwoUncoveredCell(game, x, y, x + 1, y);
+                    if (res == null) System.out.println("null");
+                    else {
+                        System.out.println("uncover: " + res.getKey().size());
+                        for (Pair<Integer, Integer> p : res.getKey()) {
+                            System.out.println("" + p.getKey() + ", " + p.getValue());
+                        }
+                        System.out.println("setFlag: " + res.getValue().size());
+                        for (Pair<Integer, Integer> p : res.getValue()) {
+                            System.out.println("" + p.getKey() + ", " + p.getValue());
+                        }
+                    }
             }
             game.printPlayerBoardToConsole();
             System.out.println(sucess);

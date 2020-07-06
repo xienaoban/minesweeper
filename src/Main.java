@@ -1,9 +1,20 @@
-import java.util.Date;
 import java.util.Scanner;
 
 public class Main {
+    private static final boolean T = true, F = false;
+
+    // 能够导致 AI 遍历连通分量时卡死的典型案例
+    public static final boolean[][] badMineBoardExample = {
+        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, F, F},
+        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F},
+        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
+        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F},
+        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
+        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F}
+    };
+
     public static void main(String[] args) {
-        new GUI();
+        if (args.length == 0) new GUI();
 //        testAI(10000);
 //        CLI();
     }
@@ -57,7 +68,9 @@ public class Main {
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
                         if (diff > 2000) {
+                            System.out.println("当前棋局：");
                             game.printPlayerBoardToConsole();
+                            System.out.println("当前连通分量：");
                             AI.printConnectedComponent(AI.findAllConnectedComponent(game).getValue());
                             time = System.currentTimeMillis();
                         }
@@ -71,18 +84,10 @@ public class Main {
         long startTime = System.currentTimeMillis();
         for (int t = 1; t <= times; ++t) {
             time = System.currentTimeMillis();
+//            game = new Game(badMineBoardExample);
 //            game = new Game(9, 9, 10);
 //            game = new Game(16, 16, 40);
             game = new Game(16, 30, 99);
-//            final boolean T = true, F = false;
-//            game = new Game(new boolean[][] { // 超大连通分量导致概率计算巨卡的案例
-//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, F, F},
-//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F},
-//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
-//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F},
-//                    {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
-//                    {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F}
-//            });
             AI.sweepToEnd(game);
             boolean win = game.getGameState() == Game.WIN;
             int exploreRate = 100;
@@ -106,7 +111,9 @@ public class Main {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
         System.out.println();
-        System.out.print("运行总耗时：" + (totalTime / 1000) + "秒");
+        System.out.print("胜率：" + ((double)winCnt / (double)times));
+        System.out.print("    运行局数：" + times);
+        System.out.print("    运行总耗时：" + (totalTime / 1000) + "秒");
         System.out.println("    平均每局耗时：" + (totalTime / times) + "毫秒");
         System.out.println("探索程度统计：");
         System.out.println("⮝ 占比");

@@ -12,6 +12,9 @@ public class AI {
     public static final int CC_VISITED = -233;
     public static final int CC_UNKNOWN = 0;
 
+    /**
+     * 工具类，无需实例化
+     */
     private AI() {}
 
     /**
@@ -21,7 +24,7 @@ public class AI {
      * @param y 目标格子 y 坐标
      * @return 周围的Unchecked格子全为（或全不为）雷、或未知
      */
-    public static int checkUncoveredCellBasic(Game game, int x, int y) {
+    public static int checkOneUncoveredCell(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
@@ -35,6 +38,34 @@ public class AI {
         if (uncheckedOrQuestion == 0) return UNKNOWN;
         if (game.getPlayerBoard(x, y) == flag) return NOT_MINE;
         if (game.getPlayerBoard(x, y) == flag + uncheckedOrQuestion) return MINE;
+        return UNKNOWN;
+    }
+
+    /**
+     * 使用减法公式，检测紧挨着的两个已知数字格子两边的未知格子是否可判断
+     * @param game 一局游戏
+     * @param x1 第一个目标格子 x 坐标
+     * @param y1 第一个目标格子 y 坐标
+     * @param x2 第二个目标格子 x 坐标
+     * @param y2 第二个目标格子 y 坐标
+     * @return
+     */
+    public static int checkTwoUncoveredCell(Game game, int x1, int y1, int x2, int y2) {
+        int num1 = game.getPlayerBoard(x1, y1), num2 = game.getPlayerBoard(x2, y2);
+        if (num1 > 8 || num2 > 8) return UNKNOWN;
+        int diffX = x2 - x1, diffY = y2 - y1;
+        for (int i = -1; i < 2; ++i) {
+            int p1 = game.getPlayerBoard(x1 - diffX + diffY * i, y1 - diffY + diffX * i);
+            if (p1 == Game.FLAG) --num1;
+            else if (p1 == Game.UNCHECKED) {
+
+            }
+            int p2 = game.getPlayerBoard(x2 + diffX + diffY * i, y2 + diffY + diffX * i);
+            if (p2 == Game.FLAG) --num2;
+            else if (p2 == Game.UNCHECKED) {
+
+            }
+        }
         return UNKNOWN;
     }
 
@@ -53,8 +84,8 @@ public class AI {
             int px = p.getKey(), py = p.getValue();
             int pState = game.getPlayerBoard(px, py);
             if (pState >= 0 && pState <= 8) {
-                if (checkUncoveredCellBasic(game, px, py) == MINE) return MINE;
-                if (checkUncoveredCellBasic(game, px, py) == NOT_MINE) return NOT_MINE;
+                if (checkOneUncoveredCell(game, px, py) == MINE) return MINE;
+                if (checkOneUncoveredCell(game, px, py) == NOT_MINE) return NOT_MINE;
             }
         }
         return UNKNOWN;
@@ -63,7 +94,7 @@ public class AI {
     /**
      * 扫描全盘，仅通过周围八格信息，判断是否存在必为雷或必不为雷的格子
      * @param game 一局游戏
-     * @return int数组第一个值代表类型，第二、第三个值代表坐标
+     * @return int数组第一个值代表类型，第二、第三个值代表坐标（只返回找到的第一个格子）
      */
     public static int[] checkAllBasic(Game game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
@@ -83,7 +114,7 @@ public class AI {
         do {
             swept = false;
             for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
-                int type = checkUncoveredCellBasic(game, x, y);
+                int type = checkOneUncoveredCell(game, x, y);
                 if (type == UNKNOWN) continue;
                 swept = true;
                 for (Pair<Integer, Integer> p : game.getAround(x, y)) {

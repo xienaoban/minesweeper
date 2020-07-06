@@ -181,9 +181,7 @@ public class Game {
      * 如你所见，撤销只支持撤销 1 步，不支持连续撤销 2 步及以上。
      * 毕竟除非触雷了，平时也没什么好撤销的。
      */
-    private void recordLastPlayerBoard() {
-        this.lastPlayerBoard = this.getPlayerBoard();
-    }
+    private void recordLastPlayerBoard() { this.lastPlayerBoard = this.getPlayerBoard(); }
 
     /**
      * 撤销回上一步（只有开了作弊才允许撤销）
@@ -208,7 +206,7 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int uncover(int x, int y) {
-        if (this.state != PROCESS || !this.isXYLegal(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
+        if (this.state != PROCESS || !this.isPointInRange(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
         this.recordLastPlayerBoard();
         ++this.step;
 
@@ -247,7 +245,7 @@ public class Game {
      */
     public int setFlag(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
+        if (this.isPointInRange(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = FLAG;
@@ -264,7 +262,7 @@ public class Game {
      */
     public int unsetFlag(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == FLAG) {
+        if (this.isPointInRange(x, y) && this.playerBoard[x][y] == FLAG) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
@@ -281,7 +279,7 @@ public class Game {
      */
     public int setQuestion(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG)) {
+        if (this.isPointInRange(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG)) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = QUESTION;
@@ -297,7 +295,7 @@ public class Game {
      */
     public int unsetQuestion(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (this.isXYLegal(x, y) && this.playerBoard[x][y] == QUESTION) {
+        if (this.isPointInRange(x, y) && this.playerBoard[x][y] == QUESTION) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
@@ -313,7 +311,7 @@ public class Game {
      */
     public int check(int x, int y) {
         if (this.state != PROCESS) return this.state;
-        if (!this.isXYLegal(x, y) || this.playerBoard[x][y] > 8) return this.state;
+        if (!this.isPointInRange(x, y) || this.playerBoard[x][y] > 8) return this.state;
 
         List<Pair<Integer, Integer>> around = this.getAround(x, y);
 
@@ -351,7 +349,7 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int cycFlagAndQuestion(int x, int y) {
-        if (this.state != PROCESS || !this.isXYLegal(x, y)) return this.state;
+        if (this.state != PROCESS || !this.isPointInRange(x, y)) return this.state;
         switch (this.playerBoard[x][y]) {
             case UNCHECKED: this.setFlag(x, y); break;
             case FLAG: this.unsetFlag(x, y); this.setQuestion(x, y); break;
@@ -410,7 +408,7 @@ public class Game {
      */
     public List<Pair<Integer, Integer>> getAround(int x, int y) {
         List<Pair<Integer, Integer>> around = new ArrayList<>();
-        if (!isXYLegal(x, y)) return around;
+        if (!isPointInRange(x, y)) return around;
 
         boolean up    = x - 1 >= 0;
         boolean down  = x + 1 < this.row;
@@ -428,13 +426,22 @@ public class Game {
     }
 
     /**
-     * 计算给出的格子坐标是否合法（即是否越界）
+     * 计算格子坐标是否是否越界
      * @param x 待判定的 x 坐标
      * @param y 待判定的 y 坐标
-     * @return 合法与否
+     * @return 是否在界内
      */
-    public boolean isXYLegal(int x, int y) {
+    public boolean isPointInRange(int x, int y) {
         return x >= 0 && x < this.row && y >= 0 && y < this.col;
+    }
+
+    /**
+     * 检查格子坐标是否是否越界（越界则抛出异常）
+     * @param x 待判定的 x 坐标
+     * @param y 待判定的 y 坐标
+     */
+    public void pointRangeCheck(int x, int y) {
+        if (!this.isPointInRange(x, y)) throw new PointOutOfBoundsException(x, y, this.row, this.col);
     }
 
     /**
@@ -490,6 +497,13 @@ public class Game {
             }
             for (int i = 0; i < this.col; ++i) System.out.print("---");
             System.out.println();
+        }
+    }
+
+    public static class PointOutOfBoundsException extends RuntimeException {
+        public PointOutOfBoundsException(int x, int y, int row, int col) {
+            super("Point (" + x + ", " + y + ") is out of bounds (0, 0, "
+                    + row + ", " + col + ").");
         }
     }
 }

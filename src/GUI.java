@@ -400,7 +400,7 @@ public class GUI extends JFrame {
             if (this.mouseLeft && this.mouseRight) {
                 around = game.getAround(this.mouseX, this.mouseY);
             }
-            if ((this.mouseLeft || this.mouseRight) && game.isXYLegal(this.mouseX, this.mouseY)) {
+            if ((this.mouseLeft || this.mouseRight) && game.isPointInRange(this.mouseX, this.mouseY)) {
                 around.add(new Pair<>(this.mouseX, this.mouseY));
             }
             for (Pair<Integer, Integer> xy : around) {

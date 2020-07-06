@@ -518,8 +518,8 @@ public class GUI extends JFrame {
             g.setFont(this.font);
         }
 
-        private int posYToIdxX(int y) { return y / cellLength; }
-        private int posXToIdxY(int x) { return x / cellLength; }
+        private int posYToIdxX(int y) { return Math.min(row - 1, Math.max(0, y / cellLength)); }
+        private int posXToIdxY(int x) { return Math.min(col - 1, Math.max(0, x / cellLength)); }
         private int idxYToPosX(int y) { return y * cellLength; }
         private int idxXToPosY(int x) { return x * cellLength; }
 

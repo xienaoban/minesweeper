@@ -35,11 +35,9 @@ public class Main {
             int sucess = 0;
             switch (op) {
                 case 0: sucess = game.uncover(x, y); break;
-                case 1: sucess = game.setFlag(x, y); break;
-                case 2: sucess = game.unsetFlag(x, y); break;
-                case 3: sucess = game.setQuestion(x, y); break;
-                case 4: sucess = game.unsetQuestion(x, y); break;
-                case 5: sucess = game.check(x, y); break;
+                case 1: sucess = game.cycFlagAndQuestion(x, y); break;
+                case 2: sucess = game.check(x, y); break;
+                case 3: AI.sweepToEnd(game); ;sucess = game.getGameState(); break;
             }
             game.printPlayerBoardToConsole();
             System.out.println(sucess);

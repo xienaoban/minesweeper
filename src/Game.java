@@ -206,7 +206,8 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int uncover(int x, int y) {
-        if (this.state != PROCESS || !this.isPointInRange(x, y) || this.playerBoard[x][y] != UNCHECKED) return this.state;
+        this.pointRangeCheck(x, y);
+        if (this.state != PROCESS || this.playerBoard[x][y] != UNCHECKED) return this.state;
         this.recordLastPlayerBoard();
         ++this.step;
 
@@ -244,8 +245,9 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int setFlag(int x, int y) {
+        this.pointRangeCheck(x, y);
         if (this.state != PROCESS) return this.state;
-        if (this.isPointInRange(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION)) {
+        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = FLAG;
@@ -256,13 +258,14 @@ public class Game {
 
     /**
      * 将某个被标旗的格子取消标记（即鼠标右键的插旗）
+     * 同时剩余雷数会加一
      * @param x 目标格子的 x 坐标
      * @param y 目标格子的 y 坐标
      * @return 执行该操作后的游戏状态
      */
     public int unsetFlag(int x, int y) {
-        if (this.state != PROCESS) return this.state;
-        if (this.isPointInRange(x, y) && this.playerBoard[x][y] == FLAG) {
+        this.pointRangeCheck(x, y);
+        if (this.state == PROCESS && this.playerBoard[x][y] == FLAG) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
@@ -278,8 +281,9 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int setQuestion(int x, int y) {
+        this.pointRangeCheck(x, y);
         if (this.state != PROCESS) return this.state;
-        if (this.isPointInRange(x, y) && (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG)) {
+        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = QUESTION;
@@ -294,8 +298,8 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int unsetQuestion(int x, int y) {
-        if (this.state != PROCESS) return this.state;
-        if (this.isPointInRange(x, y) && this.playerBoard[x][y] == QUESTION) {
+        this.pointRangeCheck(x, y);
+        if (this.state == PROCESS && this.playerBoard[x][y] == QUESTION) {
             this.recordLastPlayerBoard();
             ++this.step;
             this.playerBoard[x][y] = UNCHECKED;
@@ -310,8 +314,8 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int check(int x, int y) {
-        if (this.state != PROCESS) return this.state;
-        if (!this.isPointInRange(x, y) || this.playerBoard[x][y] > 8) return this.state;
+        this.pointRangeCheck(x, y);
+        if (this.state != PROCESS || this.playerBoard[x][y] > 8) return this.state;
 
         List<Pair<Integer, Integer>> around = this.getAround(x, y);
 
@@ -349,7 +353,8 @@ public class Game {
      * @return 执行该操作后的游戏状态
      */
     public int cycFlagAndQuestion(int x, int y) {
-        if (this.state != PROCESS || !this.isPointInRange(x, y)) return this.state;
+        this.pointRangeCheck(x, y);
+        if (this.state != PROCESS) return this.state;
         switch (this.playerBoard[x][y]) {
             case UNCHECKED: this.setFlag(x, y); break;
             case FLAG: this.unsetFlag(x, y); this.setQuestion(x, y); break;
@@ -407,9 +412,8 @@ public class Game {
      * @return 周围一圈的所有格子
      */
     public List<Pair<Integer, Integer>> getAround(int x, int y) {
+        this.pointRangeCheck(x, y);
         List<Pair<Integer, Integer>> around = new ArrayList<>();
-        if (!isPointInRange(x, y)) return around;
-
         boolean up    = x - 1 >= 0;
         boolean down  = x + 1 < this.row;
         boolean left  = y - 1 >= 0;
@@ -477,7 +481,7 @@ public class Game {
      * 控制台输出玩家视图
      */
     public void printPlayerBoardToConsole() {
-        if (this.mineBoard == null) System.out.println("null");
+        if (this.cheat && this.mineBoard == null) System.out.println("null");
         else {
             for (int i = 0; i < this.col; ++i) System.out.print("---");
             System.out.println();
@@ -502,7 +506,7 @@ public class Game {
 
     public static class PointOutOfBoundsException extends RuntimeException {
         public PointOutOfBoundsException(int x, int y, int row, int col) {
-            super("Point (" + x + ", " + y + ") is out of bounds (0, 0, "
+            super("Point (" + x + ", " + y + ") is out of range (0, 0, "
                     + row + ", " + col + ").");
         }
     }

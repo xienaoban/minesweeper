@@ -74,17 +74,18 @@ public class GUI extends JFrame {
         gameMenu.addSeparator();
         gameMenu.add(cellLengthMenuItem);
 
-        JMenuItem cheatMenuItem   = new JMenuItem("启用作弊");
-        JMenuItem undoMenuItem    = new JMenuItem("撤销操作");
-        JMenuItem mineMenuItem    = new JMenuItem("启用透视");
-        JMenuItem luckyMenuItem   = new JMenuItem("欧皇模式");
-        JMenuItem unluckyMenuItem = new JMenuItem("非酋模式");
+        JCheckBoxMenuItem cheatMenuItem   = new JCheckBoxMenuItem("启用作弊");
+        JMenuItem         undoMenuItem    = new JMenuItem("撤销操作");
+        JMenuItem         mineMenuItem    = new JMenuItem("启用透视");
+        JMenuItem         luckyMenuItem   = new JMenuItem("欧皇模式");
+        JMenuItem         unluckyMenuItem = new JMenuItem("非酋模式");
         cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
         undoMenuItem.setEnabled(cheat);
         mineMenuItem.setEnabled(cheat);
         luckyMenuItem.setEnabled(cheat);
         unluckyMenuItem.setEnabled(cheat);
         cheatMenu.add(cheatMenuItem);
+        cheatMenu.addSeparator();
         cheatMenu.add(undoMenuItem);
         cheatMenu.add(mineMenuItem);
         cheatMenu.add(luckyMenuItem);
@@ -193,9 +194,9 @@ public class GUI extends JFrame {
         cheatMenuItem.addActionListener(e -> {
             int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会新开一局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
             if (res != 0) return;
-            cheat = !cheat;
+            cheat = cheatMenuItem.isSelected();
             if (!cheat) showMine = false;
-            cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
+//            cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
             undoMenuItem.setEnabled(cheat);
             mineMenuItem.setEnabled(cheat);
             luckyMenuItem.setEnabled(cheat);

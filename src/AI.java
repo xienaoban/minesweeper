@@ -300,11 +300,19 @@ public class AI {
 
         // 计算每个连通分量的每个点的有雷概率
         for (List<Pair<Integer, Integer>> points : ccList) {
-            int permutationCnt = backtrackProbability(game, game.getPlayerBoard(), prob, points,
-                    game.getMineLeft(), 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，记得接收异常
-            for (Pair<Integer, Integer> p : points) {
-                int px = p.getKey(), py = p.getValue();
-                prob[px][py] /= permutationCnt;
+            Map<Integer, int[]> counts = new HashMap<>(32);
+            int permutationCnt = backtrackProbability(game, game.getPlayerBoard(), points,
+                    counts, 0, 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，记得接收异常
+            int[] allCounts = new int[points.size() + 1];
+//            for (Map.Entry<Integer, int[]> entry : counts.entrySet()) {}
+            for (int[] value : counts.values()) {
+                for (int i = 0; i < allCounts.length; ++i) {
+                    allCounts[i] += value[i];
+                }
+            }
+            for (int i = 0; i < points.size(); ++i) {
+                int px = points.get(i).getKey(), py = points.get(i).getValue();
+                prob[px][py] = (double) allCounts[i] / (double) permutationCnt;
                 avgPermMineCnt += prob[px][py];
             }
         }
@@ -400,19 +408,26 @@ public class AI {
      * 使用回溯法，找出某连通分量中所有的雷的布局可能性
      * @param game 一局游戏
      * @param board 回溯时可被任意修改的棋盘（防止在游戏本体上修改出问题）
-     * @param nums 存储所有可能排列下，分量中每个格子是雷的情况个数
      * @param points 一个连通分量所有的点
+     * @param counts 当有 key 个雷时的所有情况
      * @param curIndex 当前回溯位置的下标
+     * @param curMine 当前有多少雷
      * @return 可行排列总数
      */
-    private static int backtrackProbability(Game game, int[][] board, double[][] nums,
-                                            List<Pair<Integer, Integer>> points, int mineLeft, int curIndex) {
+    private static int backtrackProbability(Game game, int[][] board, List<Pair<Integer, Integer>> points, Map<Integer, int[]> counts, int curIndex, int curMine) {
         // 成功找到一个可能的排列
         if (curIndex >= points.size()) {
-            for (Pair<Integer, Integer> p : points) {
-                int px = p.getKey(), py = p.getValue();
-                if (board[px][py] == Game.MINE) ++nums[px][py];
+            int[] count; // count 前 points.size() 位保存所有情况中格子有雷的次数，最后一位保存回溯出多少种情况
+            if (counts.containsKey(curMine)) count = counts.get(curMine);
+            else {
+                count = new int[points.size() + 1];
+                counts.put(curMine, count);
             }
+            for (int i = 0; i < points.size(); ++i) {
+                int px = points.get(i).getKey(), py = points.get(i).getValue();
+                if (board[px][py] == Game.MINE) ++count[i];
+            }
+            ++count[points.size()]; // 排列个数总数
             return 1;
         }
 
@@ -420,12 +435,12 @@ public class AI {
         int x = points.get(curIndex).getKey(), y = points.get(curIndex).getValue();
         int res = 0;
         board[x][y] = Game.MINE;
-        if (mineLeft > 0 && isUncheckedCellLegal(game, board, x, y)) {
-            res += backtrackProbability(game, board, nums, points, mineLeft - 1, curIndex + 1);
+        if (curMine < game.getMineLeft() && isUncheckedCellLegal(game, board, x, y)) {
+            res += backtrackProbability(game, board, points, counts, curIndex + 1, curMine + 1);
         }
         board[x][y] = Game.NOT_MINE;
         if (isUncheckedCellLegal(game, board, x, y)) {
-            res += backtrackProbability(game, board, nums, points, mineLeft, curIndex + 1);
+            res += backtrackProbability(game, board, points, counts, curIndex + 1, curMine);
         }
         board[x][y] = Game.UNCHECKED;
         return res;

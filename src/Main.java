@@ -118,7 +118,7 @@ public class Main {
             ++exploreRateView[exploreRate / 10];
             System.out.print("第 " + t + " 局：" + (win ? "胜" : "负"));
             System.out.print("    探索程度：" + (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%");
-            System.out.println("    当前胜率：" + String.format("%.6f", (double)winCnt / (double)t));
+            System.out.println("    当前胜率：" + String.format("%.4f", (double)winCnt / (double)t * 100) + "%");
         }
         game = null;
         long totalTime = System.currentTimeMillis() - startTime;
@@ -126,7 +126,7 @@ public class Main {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
         System.out.println();
-        System.out.print("胜率：" + ((double)winCnt / (double)times));
+        System.out.print("胜率：" + ((double)winCnt / (double)times * 100) + "%");
         System.out.print("    运行局数：" + times);
         System.out.print("    运行总耗时：" + (totalTime / 1000) + "秒");
         System.out.println("    平均每局耗时：" + (totalTime / times) + "毫秒");

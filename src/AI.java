@@ -64,14 +64,14 @@ public class AI {
             if (game.isPointInRange(xx1, yy1)) {
                 int pp1 = game.getPlayerBoard(xx1, yy1);
                 if (pp1 == Game.FLAG) --num1;
-                else if (pp1 == Game.UNCHECKED) around1.add(new Pair<>(xx1, yy1));
+                else if (pp1 == Game.UNCHECKED || pp1 == Game.QUESTION) around1.add(new Pair<>(xx1, yy1));
             }
 
             int xx2 = x2 + diffX + diffY * i, yy2 = y2 + diffY + diffX * i;
             if (game.isPointInRange(xx2, yy2)) {
                 int pp2 = game.getPlayerBoard(xx2, yy2);
                 if (pp2 == Game.FLAG) --num2;
-                else if (pp2 == Game.UNCHECKED) around2.add(new Pair<>(xx2, yy2));
+                else if (pp2 == Game.UNCHECKED || pp2 == Game.QUESTION) around2.add(new Pair<>(xx2, yy2));
             }
         }
         Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res = null;
@@ -88,6 +88,7 @@ public class AI {
      * @param y 目标格子 y 坐标
      * @return AI认为是有、无雷还是未知
      */
+    @Deprecated
     public static int checkUncheckedCellBasic(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) != Game.UNCHECKED
                 && game.getPlayerBoard(x, y) != Game.QUESTION) return UNKNOWN;
@@ -104,15 +105,40 @@ public class AI {
     }
 
     /**
-     * 扫描全盘，仅通过周围八格信息，判断是否存在必为雷或必不为雷的格子
+     * 扫描全盘，仅通过单个格子或相邻两个格子，判断是否存在必为雷或必不为雷的格子
      * @param game 一局游戏
      * @return int数组第一个值代表类型，第二、第三个值代表坐标（只返回找到的第一个格子）
      */
     public static int[] checkAllBasic(Game game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
-            int type = checkUncheckedCellBasic(game, x, y);
-            if (type == UNKNOWN) continue;
-            return new int[]{type, x, y};
+            int type = checkOneUncoveredCell(game, x, y);
+            if (type != UNKNOWN) {
+                for (Pair<Integer, Integer> p : game.getAround(x, y)) {
+                    int px = p.getKey(), py = p.getValue();
+                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED
+                            && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
+                    return new int[]{type, px, py};
+                }
+            }
+
+            for (int i = 0; i < 2; ++i) {
+                int x2 = x + i, y2 = y + 1 - i;
+                Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> _pair;
+                try {
+                    _pair = checkTwoUncoveredCell(game, x, y, x2, y2);
+                } catch (Game.PointOutOfBoundsException ignored) { continue; }
+                if (_pair != null) {
+                    for (Pair<Integer, Integer> p : _pair.getKey()) {
+                        return new int[]{NOT_MINE, p.getKey(), p.getValue()};
+                    }
+                    for (Pair<Integer, Integer> p : _pair.getValue()) {
+                        return new int[]{MINE, p.getKey(), p.getValue()};
+                    }
+                }
+            }
+//            int type = checkUncheckedCellBasic(game, x, y);
+//            if (type == UNKNOWN) continue;
+//            return new int[]{type, x, y};
         }
         return new int[]{UNKNOWN};
     }
@@ -126,6 +152,7 @@ public class AI {
         do {
             swept = false;
             for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
+                // 根据单个格子进行判断
                 int type = checkOneUncoveredCell(game, x, y);
                 if (type != UNKNOWN) {
                     swept = true;
@@ -139,6 +166,7 @@ public class AI {
                     }
                 }
 
+                // 根据相邻两个格子进行判断（减法公式）
                 for (int i = 0; i < 2; ++i) {
                     int x2 = x + i, y2 = y + 1 - i;
                     if (!game.isPointInRange(x2, y2)) continue;
@@ -305,14 +333,16 @@ public class AI {
     /**
      * 进阶扫雷 AI，将所有概率为 100% 或 0% 的格子扫掉
      * @param game 一局游戏
+     * @return 最后一次计算得概率后没有利用，将其返回以重复利用
      */
-    public static void sweepAllAdvanced(Game game) {
+    public static double[][] sweepAllAdvanced(Game game) {
         boolean loop = true;
+        double[][] prob = null;
         while (loop && game.getGameState() == Game.PROCESS) {
             loop = false;
             sweepAllBasic(game);
             if (game.getGameState() != Game.PROCESS) break;
-            double[][] prob = calculateProbability(game);
+            prob = calculateProbability(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 // 由于我没有在不同连通分量之间建立联系，所以即便算出来为雷概率为 100% 也不一定准，也可能把旗标到了
                 // 非雷的格子里，导致最后整个图都标满了但游戏还未结束，所以就不在此标雷了
@@ -323,6 +353,7 @@ public class AI {
                 }
             }
         }
+        return prob;
     }
 
     /**
@@ -331,10 +362,12 @@ public class AI {
      * @param game 一局游戏
      */
     public static void sweepToEnd(Game game) {
+        // Win7 的规则下第一步点击距离角落两格的点最好
+        if (game.getStep() == 0 && game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
         while (game.getGameState() == Game.PROCESS) {
-            sweepAllAdvanced(game);
+            double[][] prob = sweepAllAdvanced(game);
             if (game.getGameState() != Game.PROCESS) break;
-            double[][] prob = calculateProbability(game);
+            if (prob == null) prob = calculateProbability(game);
             int maxX = -1, maxY = -1, corner = -1, intensity = 1;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 int cellState = game.getPlayerBoard(i, j);

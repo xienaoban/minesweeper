@@ -1,5 +1,7 @@
 import javafx.util.Pair;
 
+import static java.awt.event.InputEvent.*;
+import static java.awt.event.KeyEvent.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -17,10 +19,9 @@ public class GUI extends JFrame {
 
     private static final int INFO_HEIGHT = 55;
 
-    private int row, col, mineCount;
+    private int row, col, mineCount, gameMode;
     private boolean cheat, showMine;
     private Game game;
-    private AI ai;
 
     private int cellLength;
     private BoardCanvas canvas;
@@ -41,6 +42,7 @@ public class GUI extends JFrame {
         this.cellLength = 30;
         this.showMine = false;
         this.initMenu();
+        this.gameMode = Game.GAME_RULE_WIN_XP;
         this.initGame(9, 9, 10, false);
         this.setVisible(true);
     }
@@ -52,24 +54,31 @@ public class GUI extends JFrame {
         JMenu aiMenu    = new JMenu("AI");
         JMenu aboutMenu = new JMenu("关于");
 
-        JMenuItem newGameMenuItem       = new JMenuItem("新局");
-        JMenuItem beginnerMenuItem      = new JMenuItem("初级");
-        JMenuItem intermediateMenuItem  = new JMenuItem("中级");
-        JMenuItem advancedMenuItem      = new JMenuItem("高级");
-        JMenuItem customMenuItem        = new JMenuItem("自定义");
-        JMenuItem cellLengthMenuItem      = new JMenuItem("格子大小");
+        JMenuItem         newGameMenuItem       = new JMenuItem("开局");
+        JCheckBoxMenuItem beginnerMenuItem      = new JCheckBoxMenuItem("初级", true);
+        JCheckBoxMenuItem intermediateMenuItem  = new JCheckBoxMenuItem("中级", false);
+        JCheckBoxMenuItem advancedMenuItem      = new JCheckBoxMenuItem("高级", false);
+        JCheckBoxMenuItem customMenuItem        = new JCheckBoxMenuItem("自定义", false);
+        JCheckBoxMenuItem gameRuleWinXpMenuItem = new JCheckBoxMenuItem("规则 Win XP", true);
+        JCheckBoxMenuItem gameRuleWin7MenuItem  = new JCheckBoxMenuItem("规则 Win 7", false);
+        JMenuItem         cellLengthMenuItem    = new JMenuItem("格子大小");
         gameMenu.add(newGameMenuItem);
+        gameMenu.addSeparator();
         gameMenu.add(beginnerMenuItem);
         gameMenu.add(intermediateMenuItem);
         gameMenu.add(advancedMenuItem);
         gameMenu.add(customMenuItem);
+        gameMenu.addSeparator();
+        gameMenu.add(gameRuleWinXpMenuItem);
+        gameMenu.add(gameRuleWin7MenuItem);
+        gameMenu.addSeparator();
         gameMenu.add(cellLengthMenuItem);
 
-        JMenuItem cheatMenuItem         = new JMenuItem("启用作弊");
-        JMenuItem undoMenuItem          = new JMenuItem("撤销操作");
-        JMenuItem mineMenuItem          = new JMenuItem("启用透视");
-        JMenuItem luckyMenuItem         = new JMenuItem("欧皇模式");
-        JMenuItem unluckyMenuItem       = new JMenuItem("非酋模式");
+        JMenuItem cheatMenuItem   = new JMenuItem("启用作弊");
+        JMenuItem undoMenuItem    = new JMenuItem("撤销操作");
+        JMenuItem mineMenuItem    = new JMenuItem("启用透视");
+        JMenuItem luckyMenuItem   = new JMenuItem("欧皇模式");
+        JMenuItem unluckyMenuItem = new JMenuItem("非酋模式");
         cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
         undoMenuItem.setEnabled(cheat);
         mineMenuItem.setEnabled(cheat);
@@ -82,11 +91,11 @@ public class GUI extends JFrame {
         cheatMenu.add(unluckyMenuItem);
 
 
-        JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（基础AI）");
-        JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（基础AI）");
-        JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（进阶AI）");
-        JMenuItem sweepToEndMenuItem = new JMenuItem("扫完它");
-        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率");
+        JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（快）");
+        JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（快）");
+        JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（慢）");
+        JMenuItem sweepToEndMenuItem = new JMenuItem("扫到结束（慢）");
+        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率（慢）");
         aiMenu.add(checkBasicMenuItem);
         aiMenu.add(sweepBasicMenuItem);
         aiMenu.add(sweepAdvancedMenuItem);
@@ -101,24 +110,73 @@ public class GUI extends JFrame {
         menuBar.add(aiMenu);
         menuBar.add(aboutMenu);
 
+        newGameMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_F2, 0));
         newGameMenuItem.addActionListener(e -> initGame(row, col, mineCount, cheat));
-        beginnerMenuItem.addActionListener(e -> initGame(9, 9, 10, cheat));
-        intermediateMenuItem.addActionListener(e -> initGame(16, 16, 40, cheat));
-        advancedMenuItem.addActionListener(e -> initGame(16, 30, 99, cheat));
+        beginnerMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_1, CTRL_MASK));
+        beginnerMenuItem.addActionListener(e -> {
+            beginnerMenuItem.setSelected(true);
+            intermediateMenuItem.setSelected(false);
+            advancedMenuItem.setSelected(false);
+            customMenuItem.setSelected(false);
+            initGame(9, 9, 10, cheat);
+        });
+        intermediateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_2, CTRL_MASK));
+        intermediateMenuItem.addActionListener(e -> {
+            beginnerMenuItem.setSelected(false);
+            intermediateMenuItem.setSelected(true);
+            advancedMenuItem.setSelected(false);
+            customMenuItem.setSelected(false);
+            initGame(16, 16, 40, cheat);
+        });
+        advancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_3, CTRL_MASK));
+        advancedMenuItem.addActionListener(e -> {
+            beginnerMenuItem.setSelected(false);
+            intermediateMenuItem.setSelected(false);
+            advancedMenuItem.setSelected(true);
+            customMenuItem.setSelected(false);
+            initGame(16, 30, 99, cheat);
+        });
+        customMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_4, CTRL_MASK));
         customMenuItem.addActionListener(e -> {
+            customMenuItem.setSelected(!customMenuItem.isSelected());
             try {
                 String s = row + " " + col + " " + mineCount;
                 String[] arr = JOptionPane.showInputDialog("自定义棋盘(行 列 雷)", s).split(" ");
                 int r = Integer.parseInt(arr[0]);
                 int c = Integer.parseInt(arr[1]);
                 int m = Integer.parseInt(arr[2]);
-                if (r < 1 || c < 1 || m < 0 || m >= r * c) throw new Exception("数字范围不对。");
+                if (r < 1 || c < 1 || m < 0 || m > r * c - (gameMode == Game.GAME_RULE_WIN_XP ? 1 : 9)) {
+                    throw new Exception("数字范围错误，棋盘上容纳不下这么多雷。");
+                }
+                beginnerMenuItem.setSelected(false);
+                intermediateMenuItem.setSelected(false);
+                advancedMenuItem.setSelected(false);
+                customMenuItem.setSelected(true);
                 initGame(r, c, m, cheat);
             }
-            catch (NullPointerException ignored) {}
+            catch (NullPointerException ignored) {
+            }
             catch (Exception ex) {
                 JOptionPane.showMessageDialog(null, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
             }
+        });
+        gameRuleWinXpMenuItem.addActionListener(e -> {
+            gameMode = Game.GAME_RULE_WIN_XP;
+            gameRuleWinXpMenuItem.setSelected(true);
+            gameRuleWin7MenuItem.setSelected(false);
+            initGame(row, col, mineCount, cheat);
+        });
+        gameRuleWin7MenuItem.addActionListener(e -> {
+            gameRuleWin7MenuItem.setSelected(!gameRuleWin7MenuItem.isSelected());
+            if (mineCount > row * col - 9) {
+                JOptionPane.showMessageDialog(null, "Win7 规则下当前自定义棋盘上的雷最多为 " + (row * col - 9) + "。",
+                        "数字有误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            gameMode = Game.GAME_RULE_WIN_7;
+            gameRuleWinXpMenuItem.setSelected(false);
+            gameRuleWin7MenuItem.setSelected(true);
+            initGame(row, col, mineCount, cheat);
         });
         cellLengthMenuItem.addActionListener(e -> {
             try {
@@ -144,6 +202,7 @@ public class GUI extends JFrame {
             unluckyMenuItem.setEnabled(cheat);
             initGame(row, col, mineCount, cheat);
         });
+        undoMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, CTRL_MASK));
         undoMenuItem.addActionListener(e -> { game.undo(); setFrameAfterOperation(); });
         mineMenuItem.addActionListener(e -> {
             if (!cheat) showMine = false;
@@ -281,7 +340,7 @@ public class GUI extends JFrame {
         this.col = col;
         this.mineCount = mineCount;
         this.cheat = cheat;
-        this.game = new Game(this.row, this.col, this.mineCount, this.cheat);
+        this.game = new Game(this.row, this.col, this.mineCount, this.cheat, this.gameMode);
         this.game.setShowMine(this.showMine);
 
         this.setFrame();

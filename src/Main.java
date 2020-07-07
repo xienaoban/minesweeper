@@ -28,9 +28,8 @@ public class Main {
      */
     private static void CLI() {
         Scanner sc = new Scanner(System.in);
-//        System.out.print("输入 行 列 雷数：");
-//        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
-        Game game = new Game(16, 30, 99);
+        System.out.print("输入 行 列 雷数：");
+        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
         while (true) {
             System.out.print("输入 操作码 x y：");
             int op = sc.nextInt();
@@ -101,9 +100,9 @@ public class Main {
         for (int t = 1; t <= times; ++t) {
             time = System.currentTimeMillis();
 //            game = new Game(badMineBoardExample);
-//            game = new Game(9, 9, 10);
-//            game = new Game(16, 16, 40);
-            game = new Game(16, 30, 99);
+//            game = new Game(Game.DIFFICULTY_BEGINNER);
+//            game = new Game(Game.DIFFICULTY_INTERMEDIATE);
+            game = new Game(Game.DIFFICULTY_EXPERT, Game.GAME_RULE_WIN_XP);
             AI.sweepToEnd(game);
             boolean win = game.getGameState() == Game.WIN;
             int exploreRate = 100;

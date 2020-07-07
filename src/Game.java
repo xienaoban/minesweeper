@@ -7,6 +7,11 @@ public class Game {
     public static final int WIN     = 1;
     public static final int LOSE    = -1;
 
+    // 三种预设难度
+    public static final int DIFFICULTY_BEGINNER     = 1001;
+    public static final int DIFFICULTY_INTERMEDIATE = 1002;
+    public static final int DIFFICULTY_EXPERT       = 1003;
+
     // 玩家视图中每个格子的状态
     public static final int UNCHECKED = 11;
     public static final int FLAG      = 101;
@@ -32,13 +37,56 @@ public class Game {
     private int step;                               // 执行了多少步数（揭开、标旗、标问号等操作均算一步）
 
     /**
-     * 最基础构造函数，默认作弊关闭、WinXP 版本规则
+     * 最简洁的构造函数，从预设难度创建游戏。默认作弊关闭、WinXP 版本规则
+     * @param difficulty 难度（三个宏）：`DIFFICULTY_BEGINNER`，`DIFFICULTY_INTERMEDIATE`，`DIFFICULTY_EXPERT`
+     */
+    public Game(int difficulty) {
+        this(difficulty, false, GAME_RULE_WIN_XP);
+    }
+
+    /**
+     * 构造函数，从缺省难度创建游戏。默认 WinXP 版本规则
+     * @param difficulty 难度（三个宏）：`DIFFICULTY_BEGINNER`、`DIFFICULTY_INTERMEDIATE`、`DIFFICULTY_EXPERT`
+     * @param cheat 作弊与否
+     */
+    public Game(int difficulty, boolean cheat) {
+        this(difficulty, cheat, GAME_RULE_WIN_XP);
+    }
+
+    /**
+     * 构造函数，从缺省难度创建游戏。默认作弊关闭
+     * @param difficulty 难度（三个宏）：`DIFFICULTY_BEGINNER`、`DIFFICULTY_INTERMEDIATE`、`DIFFICULTY_EXPERT`
+     * @param gameRule 游戏规则（两个宏）：`GAME_RULE_WIN_XP`、`GAME_RULE_WIN_7`
+     */
+    public Game(int difficulty, int gameRule) {
+        this(difficulty, false, gameRule);
+    }
+
+    /**
+     * 构造函数，从缺省难度创建游戏
+     * @param difficulty 难度（三个宏）：`DIFFICULTY_BEGINNER`、`DIFFICULTY_INTERMEDIATE`、`DIFFICULTY_EXPERT`
+     * @param cheat 作弊与否
+     * @param gameRule 游戏规则（两个宏）：`GAME_RULE_WIN_XP`、`GAME_RULE_WIN_7`
+     */
+    public Game(int difficulty, boolean cheat, int gameRule) {
+        switch (difficulty) {
+            case DIFFICULTY_BEGINNER:
+                this.initGame(9, 9, 10, cheat, null, gameRule); break;
+            case DIFFICULTY_INTERMEDIATE:
+                this.initGame(16, 16, 40, cheat, null, gameRule); break;
+            case DIFFICULTY_EXPERT:
+                this.initGame(16, 30, 99, cheat, null, gameRule); break;
+        }
+    }
+
+    /**
+     * 构造函数，指定宽、高、雷，默认作弊关闭、WinXP 版本规则
      * @param row 行数
      * @param col 列数
      * @param mineCount 雷数
      */
     public Game(int row, int col, int mineCount) {
-        this.initGame(row, col, mineCount, false, null, GAME_RULE_WIN_XP);
+        this(row, col, mineCount, false, GAME_RULE_WIN_XP);
     }
 
     /**
@@ -49,7 +97,7 @@ public class Game {
      * @param gameRule 游戏规则版本
      */
     public Game(int row, int col, int mineCount, int gameRule) {
-        this.initGame(row, col, mineCount, false, null, gameRule);
+        this(row, col, mineCount, false, gameRule);
     }
 
     /**
@@ -60,7 +108,7 @@ public class Game {
      * @param cheat 作弊与否
      */
     public Game(int row, int col, int mineCount, boolean cheat) {
-        this.initGame(row, col, mineCount, cheat, null, GAME_RULE_WIN_XP);
+        this(row, col, mineCount, cheat, GAME_RULE_WIN_XP);
     }
 
     /**
@@ -374,6 +422,7 @@ public class Game {
 
     public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
     public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {
+        this.pointRangeCheck(x, y);
         if (showMineIfAllowed && this.cheat && this.showMine && this.getMineBoard(x, y) && this.playerBoard[x][y] == UNCHECKED) return GRAY_MINE;
         return this.playerBoard[x][y];
     }

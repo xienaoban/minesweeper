@@ -205,6 +205,7 @@ public class GUI extends JFrame {
         });
         undoMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, CTRL_MASK));
         undoMenuItem.addActionListener(e -> { game.undo(); setFrameAfterOperation(); });
+        mineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_M, CTRL_MASK));
         mineMenuItem.addActionListener(e -> {
             if (!cheat) showMine = false;
             else {
@@ -215,6 +216,7 @@ public class GUI extends JFrame {
             }
         });
 
+        checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Q, CTRL_MASK));
         checkBasicMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
@@ -235,6 +237,7 @@ public class GUI extends JFrame {
             }.start();
         });
 
+        sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
         sweepBasicMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
@@ -246,6 +249,7 @@ public class GUI extends JFrame {
             }.start();
         });
 
+        sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
         sweepAdvancedMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
@@ -257,6 +261,7 @@ public class GUI extends JFrame {
             }.start();
         });
 
+        sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
         sweepToEndMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
@@ -268,6 +273,7 @@ public class GUI extends JFrame {
             }.start();
         });
 
+        aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
         aiDebugMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {

@@ -300,7 +300,7 @@ public class AI {
 
         // 计算每个连通分量的每个点的有雷概率
         for (List<Pair<Integer, Integer>> points : ccList) {
-            Map<Integer, int[]> counts = new HashMap<>(32);
+            Map<Integer, int[]> counts = new HashMap<>(16);
             int permutationCnt = backtrackProbability(game, game.getPlayerBoard(), points,
                     counts, 0, 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，记得接收异常
             int[] allCounts = new int[points.size() + 1];

@@ -16,10 +16,20 @@ public class Main {
         {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F}
     };
 
+    // 一些在 testAI 及其创建的线程中用到的变量
+    private static long time;
+    private static Game game;
+
     public static void main(String[] args) {
         if (args.length == 0) new GUI();
-//        testAI(10000);
-//        CLI();
+        else if (args[0].equals("test")) testAI(args);
+        else if (args[0].equals("cli")) CLI();
+        else if (args[0].equals("help")) {
+            System.out.println("参数     描述");
+            System.out.println(" 无       GUI 入口");
+            System.out.println(" cli      CLI 入口");
+            System.out.println(" test     测试 AI 胜率，详情输入 test --help");
+        }
     }
 
     /**
@@ -40,7 +50,7 @@ public class Main {
                 case 0: sucess = game.uncover(x, y); break;
                 case 1: sucess = game.cycFlagAndQuestion(x, y); break;
                 case 2: sucess = game.check(x, y); break;
-                case 3: AI.sweepToEnd(game); ;sucess = game.getGameState(); break;
+                case 3: AI.sweepToEnd(game); sucess = game.getGameState(); break;
                 case 4:
                     Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res =
                             AI.checkTwoUncoveredCell(game, x, y, x + 1, y);
@@ -62,16 +72,55 @@ public class Main {
         }
     }
 
-    // 一些在 testAI 及其创建的线程中用到的变量
-    private static long time;
-    private static Game game;
-
     /**
      * AI 测试
      * 反复运行若干局，计算胜率
-     * @param times 执行次数
+     * @param args 执行参数
      */
-    private static void testAI(int times) {
+    private static void testAI(String[] args) {
+        int times = 10000, difficulty = Game.DIFFICULTY_EXPERT, gameRule = Game.GAME_RULE_WIN_XP;
+        for (int i = 1; i < args.length; i += 2) {
+            String nextArg = i + 1 < args.length ? args[i + 1] : "";
+            boolean error = false;
+            switch (args[i]) {
+                case "-t": case "--times":
+                    try { times = Integer.parseInt(nextArg); }
+                    catch (Exception ignored) { error = true; }
+                    break;
+                case "-r": case "--rule":
+                    if (nextArg.contains("7")) gameRule = Game.GAME_RULE_WIN_7;
+                    else if (nextArg.contains("xp") || nextArg.contains("Xp") || nextArg.contains("XP")) {
+                        gameRule = Game.GAME_RULE_WIN_XP;
+                    }
+                    else error = true;
+                    break;
+                case "-d": case "--difficulty":
+                    switch (nextArg) {
+                        case "1": case "beg": case "beginner":
+                            difficulty = Game.DIFFICULTY_BEGINNER;
+                            break;
+                        case "2": case "int": case "intermediate":
+                            difficulty = Game.DIFFICULTY_INTERMEDIATE;
+                            break;
+                        case "3": case "exp": case "expert":
+                            difficulty = Game.DIFFICULTY_EXPERT;
+                            break;
+                        default: error = true;
+                    }
+                    break;
+                case "-h": case "--help":
+                    System.out.println("--times         -t 测试的局数，默认 10000 次。");
+                    System.out.println("--rule          -r 测试的游戏规则，winxp 或 win7，默认 winxp。");
+                    System.out.println("--difficulty    -d 测试的游戏难度，beginner（beg，1）、intermediate（int，2）、expert（exp，3）。");
+                    return;
+                default: error = true;
+            }
+            if (error) {
+                System.out.println("参数格式错误，键入 -h 或 --help 以获得帮助。");
+                return;
+            }
+        }
+
         int winCnt = 0;
         int[] exploreRateView = new int[11];
         // 如果遇到连通分量特别长导致运算时间很久，每隔2秒输出一次
@@ -100,9 +149,7 @@ public class Main {
         for (int t = 1; t <= times; ++t) {
             time = System.currentTimeMillis();
 //            game = new Game(badMineBoardExample);
-//            game = new Game(Game.DIFFICULTY_BEGINNER);
-//            game = new Game(Game.DIFFICULTY_INTERMEDIATE);
-            game = new Game(Game.DIFFICULTY_EXPERT, Game.GAME_RULE_WIN_XP);
+            game = new Game(difficulty, gameRule);
             AI.sweepToEnd(game);
             boolean win = game.getGameState() == Game.WIN;
             int exploreRate = 100;

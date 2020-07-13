@@ -1,5 +1,4 @@
 import javafx.util.Pair;
-import org.omg.PortableInterceptor.INACTIVE;
 
 import java.util.*;
 
@@ -136,9 +135,6 @@ public class AI {
                     }
                 }
             }
-//            int type = checkUncheckedCellBasic(game, x, y);
-//            if (type == UNKNOWN) continue;
-//            return new int[]{type, x, y};
         }
         return new int[]{UNKNOWN};
     }
@@ -244,7 +240,7 @@ public class AI {
      * @param game 一局游戏
      * @return Pair 的 key 储存所有分量的所有点，value 为整个图
      */
-    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponent(Game game) {
+    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(Game game) {
         List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
         int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
@@ -291,31 +287,21 @@ public class AI {
      * @param game 一局游戏
      * @return 每个格子的有雷概率
      */
-    public static double[][] calculateProbability(Game game) {
-        double[][] prob = new double[game.getRow()][game.getCol()];
-        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponent(game);
+    public static double[][] calculateAllProbabilities(Game game) {
+        double[][] probGraph = new double[game.getRow()][game.getCol()];
+        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponents(game);
         List<List<Pair<Integer, Integer>>> ccList = _ccPair.getKey();
         int[][] ccGraph = _ccPair.getValue();
-        double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
+        List<Map<Integer, int[]>> ccPermList = new ArrayList<>(ccList.size());
 
         // 计算每个连通分量的每个点的有雷概率
         for (List<Pair<Integer, Integer>> points : ccList) {
-            Map<Integer, int[]> counts = new HashMap<>(16);
-            int permutationCnt = backtrackProbability(game, game.getPlayerBoard(), points,
-                    counts, 0, 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，记得接收异常
-            int[] allCounts = new int[points.size() + 1];
-//            for (Map.Entry<Integer, int[]> entry : counts.entrySet()) {}
-            for (int[] value : counts.values()) {
-                for (int i = 0; i < allCounts.length; ++i) {
-                    allCounts[i] += value[i];
-                }
-            }
-            for (int i = 0; i < points.size(); ++i) {
-                int px = points.get(i).getKey(), py = points.get(i).getValue();
-                prob[px][py] = (double) allCounts[i] / (double) permutationCnt;
-                avgPermMineCnt += prob[px][py];
-            }
+            Map<Integer, int[]> perm = new HashMap<>(16);
+            backtrackAllPossiblePermutations(game, game.getPlayerBoard(), points,
+                    perm, 0, 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，会异常
+            ccPermList.add(perm);
         }
+        double avgPermMineCnt = calculateProbabilitiesOfAllConnectedComponents(game, ccList, ccPermList, probGraph);
 
         // 所有未知孤立格子（即周围没有已知数字格子的格子）统一计算概率为“平均剩余雷数/未知孤立格子数”
         int unknownCellCnt = 0;
@@ -325,17 +311,21 @@ public class AI {
         }
         if (unknownCellCnt > 0) {
             double unknownCellProb = ((double) game.getMineLeft() - avgPermMineCnt) / (double) (unknownCellCnt);
+            if (unknownCellProb < 0) {
+                if (Math.abs(unknownCellProb) < 1e-5) unknownCellProb = 0.0;
+                else if (Math.abs(unknownCellProb - 1.0) < 1e-5) unknownCellProb = 1.0;
+            }
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 if (ccGraph[i][j] == CC_UNKNOWN) {
                     if (game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION) {
-                        prob[i][j] = unknownCellProb;
+                        probGraph[i][j] = unknownCellProb;
                     }
-                    else if (game.getPlayerBoard(i, j) == Game.FLAG) prob[i][j] = 1.0;
+                    else if (game.getPlayerBoard(i, j) == Game.FLAG) probGraph[i][j] = 1.0;
                 }
             }
         }
 //        printProbability(prob);
-        return prob;
+        return probGraph;
     }
 
     /**
@@ -350,12 +340,10 @@ public class AI {
             loop = false;
             sweepAllBasic(game);
             if (game.getGameState() != Game.PROCESS) break;
-            prob = calculateProbability(game);
+            prob = calculateAllProbabilities(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                // 由于我没有在不同连通分量之间建立联系，所以即便算出来为雷概率为 100% 也不一定准，也可能把旗标到了
-                // 非雷的格子里，导致最后整个图都标满了但游戏还未结束，所以就不在此标雷了
-//                if (prob[i][j] == 1 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
-                if (prob[i][j] == 0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
+                if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
+                if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
                     game.uncover(i, j);
                     loop = true;
                 }
@@ -371,12 +359,15 @@ public class AI {
      */
     public static void sweepToEnd(Game game) {
         // Win7 的规则下第一步点击距离角落两格的点最好
-        if (game.getStep() == 0 && game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
+        if (game.getStep() == 0) {
+            if (game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
+            else game.uncover(0, 0);
+        }
         while (game.getGameState() == Game.PROCESS) {
             double[][] prob = sweepAllAdvanced(game);
             if (game.getGameState() != Game.PROCESS) break;
-            if (prob == null) prob = calculateProbability(game);
-            int maxX = -1, maxY = -1, corner = -1, intensity = 1;
+            if (prob == null) prob = calculateAllProbabilities(game);
+            int maxX = -1, maxY = -1, corner = -1, intensity = -1;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 int cellState = game.getPlayerBoard(i, j);
                 if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
@@ -409,19 +400,20 @@ public class AI {
      * @param game 一局游戏
      * @param board 回溯时可被任意修改的棋盘（防止在游戏本体上修改出问题）
      * @param points 一个连通分量所有的点
-     * @param counts 当有 key 个雷时的所有情况
+     * @param ccPerm 当有 key 个雷时的所有情况
      * @param curIndex 当前回溯位置的下标
      * @param curMine 当前有多少雷
      * @return 可行排列总数
      */
-    private static int backtrackProbability(Game game, int[][] board, List<Pair<Integer, Integer>> points, Map<Integer, int[]> counts, int curIndex, int curMine) {
+    private static int backtrackAllPossiblePermutations(Game game, int[][] board, List<Pair<Integer, Integer>> points,
+                                                        Map<Integer, int[]> ccPerm, int curIndex, int curMine) {
         // 成功找到一个可能的排列
         if (curIndex >= points.size()) {
             int[] count; // count 前 points.size() 位保存所有情况中格子有雷的次数，最后一位保存回溯出多少种情况
-            if (counts.containsKey(curMine)) count = counts.get(curMine);
+            if (ccPerm.containsKey(curMine)) count = ccPerm.get(curMine);
             else {
                 count = new int[points.size() + 1];
-                counts.put(curMine, count);
+                ccPerm.put(curMine, count);
             }
             for (int i = 0; i < points.size(); ++i) {
                 int px = points.get(i).getKey(), py = points.get(i).getValue();
@@ -436,13 +428,127 @@ public class AI {
         int res = 0;
         board[x][y] = Game.MINE;
         if (curMine < game.getMineLeft() && isUncheckedCellLegal(game, board, x, y)) {
-            res += backtrackProbability(game, board, points, counts, curIndex + 1, curMine + 1);
+            res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine + 1);
         }
         board[x][y] = Game.NOT_MINE;
         if (isUncheckedCellLegal(game, board, x, y)) {
-            res += backtrackProbability(game, board, points, counts, curIndex + 1, curMine);
+            res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine);
         }
         board[x][y] = Game.UNCHECKED;
+        return res;
+    }
+
+    private static double calculateProbabilitiesOfAllConnectedComponents(Game game,
+                                                                         List<List<Pair<Integer, Integer>>> ccList,
+                                                                         List<Map<Integer, int[]>> ccPermList,
+                                                                         double[][] probGraph) {
+        final int mineLeft = game.getMineLeft();
+        double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
+        int maxPermMineCnt = 0; // 所有连通分量最多有多少个雷
+
+        // 将每个连通分量所有可能排列中最多的雷数相加，计算 maxPermMineCnt
+        for (Map<Integer, int[]> perm : ccPermList) {
+            int max = 0;
+            for (int key : perm.keySet()) {
+                max = Math.max(max, key);
+            }
+            maxPermMineCnt += max;
+        }
+
+        // 如果 maxPermMineCnt 最多也比剩余雷数 mineLeft 少（或相等），则可以安心地独立计算每个连通分量的概率
+//        if(true) {
+//        if (false) {
+        if (maxPermMineCnt <= mineLeft) {
+            for (int index = 0; index < ccList.size(); ++index) {
+                List<Pair<Integer, Integer>> points = ccList.get(index);
+                Map<Integer, int[]> perm = ccPermList.get(index);
+                int[] allCounts = new int[points.size() + 1];
+                for (int[] value : perm.values()) {
+                    for (int i = 0; i < allCounts.length; ++i) {
+                        allCounts[i] += value[i];
+                    }
+                }
+                for (int i = 0; i < points.size(); ++i) {
+                    int px = points.get(i).getKey(), py = points.get(i).getValue();
+                    probGraph[px][py] = (double) allCounts[i] / (double) allCounts[points.size()];
+                    avgPermMineCnt += probGraph[px][py];
+                }
+            }
+            return avgPermMineCnt;
+        }
+
+        // 反之如果 maxPermMineCnt > mineLeft，需要综合计算所有连通分量才能得出精确概率
+        // 以下算法计算：当一个连通分量有 x 个雷时，在全局中有多少组合包含了它
+        Deque<Map<Integer, Integer>> stack = new ArrayDeque<>(ccPermList.size());
+        Map<Integer, Integer> outOfRange = new HashMap<>();
+        outOfRange.put(0, 1);
+        stack.addFirst(outOfRange);
+//        System.out.println("*******" + mineLeft + ", " + maxPermMineCnt + ", " + ccList.size());
+        for (int i = 0; i < ccPermList.size(); ++i) {
+            Map<Integer, Integer> pre = stack.getFirst();
+            Map<Integer, int[]> toMerge = ccPermList.get(i);
+            Map<Integer, Integer> cur = mergeTwoPermutations(pre, toMerge, mineLeft, true);
+            stack.addFirst(cur);
+
+//            System.out.print("< ");
+//            for (Map.Entry<Integer, int[]> e : toMerge.entrySet())  System.out.print(" | " + e.getKey() + ", " + e.getValue()[e.getValue().length - 1]);
+//            System.out.println();
+//            System.out.print(" >");
+//            for (Map.Entry<Integer, Integer> e : cur.entrySet())  System.out.print(" | " + e.getKey() + ", " + e.getValue());
+//            System.out.println();
+        }
+        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量（要求组合中所有雷数 <= mineLeft）
+        for (int cnt : stack.removeFirst().values()) allPermCnt += cnt;
+        Map<Integer, Integer> right = outOfRange;
+        for (int i = ccPermList.size() - 1; i >= 0; --i) { // 遍历每个连通分量
+            List<Pair<Integer, Integer>> ccPoints = ccList.get(i); // 该分量的所有格子坐标
+            Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数（key）情况下的排列（value）
+
+            Map<Integer, Integer> left = stack.removeFirst();
+            // 除该连通分量之外，其他所有连通分量有多少组合使雷数小于等于 minLeft（key 为雷数（小于等于 minLeft），value 为组合总个数）
+            Map<Integer, Integer> exceptCur = mergeTwoPermutations(left, right, mineLeft, false);
+            right = mergeTwoPermutations(right, ccPerms, mineLeft, true);
+
+            for (Map.Entry<Integer, int[]> cur :  ccPerms.entrySet()) { // 遍历该连通分量的所有可能雷数
+                int curPermCnt = 0; // 所有其他分量的可行组合中，多少种加上当前雷数依然小于等于 mineLeft
+                for (Map.Entry<Integer, Integer> other : exceptCur.entrySet()) {
+                    if (other.getKey() + cur.getKey() <= mineLeft) {
+                        curPermCnt += other.getValue();
+                    }
+                }
+                for (int j = 0; j < ccPoints.size(); ++j) {
+                    int px = ccPoints.get(j).getKey(), py = ccPoints.get(j).getValue();
+                    // 当前连通分量在有这些个雷时，当前格子有雷的概率 prob =
+                    // 当前雷数下格子有雷的次数/当前雷数下排列次数*当前雷数全局出现总次数/所有可行排列总数。
+                    // 其中，当前雷数全局出现总次数=当前雷数下排列次数*curPermCnt。
+                    // 于是综合如下
+                    double prob = (double) cur.getValue()[j] * curPermCnt / allPermCnt;
+                    probGraph[px][py] += prob;
+                    avgPermMineCnt += prob;
+                }
+            }
+
+        }
+        return avgPermMineCnt;
+    }
+
+    private static Map<Integer, Integer> mergeTwoPermutations(Map<Integer, Integer> perm1, Map<Integer, ?> perm2,
+                                                              int maxMine, boolean objType) {
+        Map<Integer, Integer> res = new HashMap<>(32);
+        for (Map.Entry<Integer, Integer> e1 : perm1.entrySet()) {
+            for (Map.Entry<Integer, ?> e2 : perm2.entrySet()) {
+                int newKey = e1.getKey() + e2.getKey();
+                if (newKey > maxMine) continue;
+                int newValue = e1.getValue();
+                if (objType) {
+                    int[] temp = (int[]) e2.getValue();
+                    newValue *= temp[temp.length - 1];
+                }
+                else newValue *= (Integer) e2.getValue();
+                newValue += res.getOrDefault(newKey, 0);
+                res.put(newKey, newValue);
+            }
+        }
         return res;
     }
 

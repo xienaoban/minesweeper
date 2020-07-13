@@ -277,8 +277,8 @@ public class GUI extends JFrame {
         aiDebugMenuItem.addActionListener(e -> {
             new Thread() {
                 public void run() {
-                    int[][] cc = AI.findAllConnectedComponent(game).getValue();
-                    double[][] prob = AI.calculateProbability(game);
+                    int[][] cc = AI.findAllConnectedComponents(game).getValue();
+                    double[][] prob = AI.calculateAllProbabilities(game);
                     canvas.setConnectedComponentsAndProbability(cc, prob);
                 }
             }.start();

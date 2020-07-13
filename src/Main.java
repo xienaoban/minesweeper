@@ -18,9 +18,11 @@ public class Main {
 
     // 一些在 testAI 及其创建的线程中用到的变量
     private static long time;
+    private static int round;
     private static Game game;
 
     public static void main(String[] args) {
+//        testAI(args);
         if (args.length == 0) new GUI();
         else if (args[0].equals("test")) testAI(args);
         else if (args[0].equals("cli")) CLI();
@@ -132,10 +134,9 @@ public class Main {
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
                         if (diff > 2000) {
-                            System.out.println("当前棋局：");
-                            game.printPlayerBoardToConsole();
-                            System.out.println("当前连通分量：");
-                            AI.printConnectedComponent(AI.findAllConnectedComponent(game).getValue());
+                            System.out.println("第 " + round + " 局耗时超预期，可能是连通分量太长。当前步数："
+                                    + game.getStep() + "。当前连通分量：");
+                            AI.printConnectedComponent(AI.findAllConnectedComponents(game).getValue());
                             time = System.currentTimeMillis();
                         }
                     }
@@ -146,7 +147,7 @@ public class Main {
         };
         th.start();
         long startTime = System.currentTimeMillis();
-        for (int t = 1; t <= times; ++t) {
+        for (round = 1; round <= times; ++round) {
             time = System.currentTimeMillis();
 //            game = new Game(badMineBoardExample);
             game = new Game(difficulty, gameRule);
@@ -163,20 +164,19 @@ public class Main {
                 exploreRate = 100 * explored / (game.getRow() * game.getCol());
             }
             ++exploreRateView[exploreRate / 10];
-            System.out.print("第 " + t + " 局：" + (win ? "胜" : "负"));
-            System.out.print("    探索程度：" + (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%");
-            System.out.println("    当前胜率：" + String.format("%.4f", (double)winCnt / (double)t * 100) + "%");
+            System.out.printf("第 %d 局：%s    探索程度：%s    当前胜率：%.4f%%\r", round, (win ? "胜" : "负"),
+                    (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
+                    (double)winCnt / (double)round * 100);
         }
         game = null;
         long totalTime = System.currentTimeMillis() - startTime;
         for (int i = 0; i < exploreRateView.length; ++i) {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
+        System.out.print("                                                         \r");
+        System.out.printf("胜率：%.2f%%    运行局数：%d    运行总耗时：%d秒    平均每局耗时：%d毫秒",
+                (double)winCnt / (double)times * 100, times, totalTime / 1000, totalTime / times);
         System.out.println();
-        System.out.print("胜率：" + ((double)winCnt / (double)times * 100) + "%");
-        System.out.print("    运行局数：" + times);
-        System.out.print("    运行总耗时：" + (totalTime / 1000) + "秒");
-        System.out.println("    平均每局耗时：" + (totalTime / times) + "毫秒");
         System.out.println("探索程度统计：");
         System.out.println("⮝ 占比");
         for (int i = 1; i < 10; ++i) {

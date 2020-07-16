@@ -13,16 +13,16 @@ public class AI {
     public static final int CC_UNKNOWN = 0;
 
     /**
-     * 工具类，无需实例化
+     * 工具类, 无需实例化
      */
     private AI() {}
 
     /**
-     * 仅通过检测周围8格，确定已知数字的格子周围剩下的未知格子是否全部为雷
+     * 仅通过检测周围8格, 确定已知数字的格子周围剩下的未知格子是否全部为雷
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
-     * @return 周围的 Unchecked 格子全为（或全不为）雷、或未知
+     * @return 周围的 Unchecked 格子全为 (或全不为) 雷、或未知
      */
     public static int checkOneUncoveredCell(Game game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
@@ -42,7 +42,7 @@ public class AI {
     }
 
     /**
-     * 使用减法公式，检测紧挨着的两个已知数字格子两边的未知格子是否可判断
+     * 使用减法公式, 检测紧挨着的两个已知数字格子两边的未知格子是否可判断
      * @param game 一局游戏
      * @param x1 第一个目标格子 x 坐标
      * @param y1 第一个目标格子 y 坐标
@@ -80,8 +80,8 @@ public class AI {
     }
 
     /**
-     * 仅通过检测周围8格，确定目标未知格子是否有雷
-     * 要先找出周围所有数字格子，再逐个判断数字格子周围8格，最终判断范围达到了 5*5 格，不建议使用该函数
+     * 仅通过检测周围8格, 确定目标未知格子是否有雷
+     * 要先找出周围所有数字格子, 再逐个判断数字格子周围8格, 最终判断范围达到了 5*5 格, 不建议使用该函数
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
@@ -104,9 +104,9 @@ public class AI {
     }
 
     /**
-     * 扫描全盘，仅通过单个格子或相邻两个格子，判断是否存在必为雷或必不为雷的格子
+     * 扫描全盘, 仅通过单个格子或相邻两个格子, 判断是否存在必为雷或必不为雷的格子
      * @param game 一局游戏
-     * @return int数组第一个值代表类型，第二、第三个值代表坐标（只返回找到的第一个格子）
+     * @return int数组第一个值代表类型, 第二、第三个值代表坐标 (只返回找到的第一个格子)
      */
     public static int[] checkAllBasic(Game game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
@@ -140,7 +140,7 @@ public class AI {
     }
 
     /**
-     * 仅通过周围八格信息，找出所有必为雷或必不为雷的格子
+     * 仅通过周围八格信息, 找出所有必为雷或必不为雷的格子
      * @param game 一局游戏
      */
     public static void sweepAllBasic(Game game) {
@@ -162,7 +162,7 @@ public class AI {
                     }
                 }
 
-                // 根据相邻两个格子进行判断（减法公式）
+                // 根据相邻两个格子进行判断 (减法公式)
                 for (int i = 0; i < 2; ++i) {
                     int x2 = x + i, y2 = y + 1 - i;
                     if (!game.isPointInRange(x2, y2)) continue;
@@ -184,9 +184,9 @@ public class AI {
     }
 
     /**
-     * 检查已知是数字的一个格子，判断对其周围是否是雷的判定是否合法
+     * 检查已知是数字的一个格子, 判断对其周围是否是雷的判定是否合法
      * @param game 一局游戏
-     * @param board 棋局。标记为 MINE 或 FLAG 说明判定为雷；标记为 NOT_MINE 说明判定为非雷
+     * @param board 棋局. 标记为 MINE 或 FLAG 说明判定为雷; 标记为 NOT_MINE 说明判定为非雷
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
      * @return 是否合法
@@ -218,9 +218,9 @@ public class AI {
     }
 
     /**
-     * 检查一个非数字的格子，根据周围的数字格子判断该格子在被判定为是雷/非雷的情况下是否合法
+     * 检查一个非数字的格子, 根据周围的数字格子判断该格子在被判定为是雷/非雷的情况下是否合法
      * @param game 一局游戏
-     * @param board 棋局。标记为 MINE 或 FLAG 说明判定为雷；标记为 NOT_MINE 说明判定为非雷
+     * @param board 棋局. 标记为 MINE 或 FLAG 说明判定为雷; 标记为 NOT_MINE 说明判定为非雷
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
      * @return 是否合法
@@ -236,30 +236,30 @@ public class AI {
 
     /**
      * 寻找所有连通分量
-     * 一个连通分量表示，有多种可能性且相互影响的一个区域
+     * 一个连通分量表示, 有多种可能性且相互影响的一个区域
      * @param game 一局游戏
-     * @return Pair 的 key 储存所有分量的所有点，value 为整个图
+     * @return Pair 的 key 储存所有分量的所有点, value 为整个图
      */
     public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(Game game) {
         List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
         int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
-        // 遍历每个点，找到第一个可能属于一个连通分量的点，并从该点扩散开来寻找其他属于该分量的点
+        // 遍历每个点, 找到第一个可能属于一个连通分量的点, 并从该点扩散开来寻找其他属于该分量的点
         for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
             if (ccGraph[i][j] != CC_UNKNOWN || game.getPlayerBoard(i, j) > 8) continue;
-            // 找到了一个可能的点。注意该点为已扫出数字的格子（因为一个数字格子周围的未知格子必属于同一分量）
-            // 该队列存储的点是已扫出数字的格子，这些个数字格子周围的未知格子也必属于同一分量
+            // 找到了一个可能的点. 注意该点为已扫出数字的格子 (因为一个数字格子周围的未知格子必属于同一分量)
+            // 该队列存储的点是已扫出数字的格子, 这些个数字格子周围的未知格子也必属于同一分量
             Queue<Pair<Integer, Integer>> que = new LinkedList<>();
             que.offer(new Pair<>(i, j));
             List<Pair<Integer, Integer>> points = new ArrayList<>();
             boolean findANewComponent = false;
-            // BFS 遍历周围的点，搜出整个连通分量
+            // BFS 遍历周围的点, 搜出整个连通分量
             while (!que.isEmpty()) {
                 Pair<Integer, Integer> cur = que.poll();
                 int cx = cur.getKey(), cy = cur.getValue();
                 if (ccGraph[cx][cy] == CC_VISITED) continue;
                 ccGraph[cx][cy] = CC_VISITED;
-                // 遍历该数字格子周围的所有未知格子，它们属于同一个分量
+                // 遍历该数字格子周围的所有未知格子, 它们属于同一个分量
                 for (Pair<Integer, Integer> p : game.getAround(cx, cy)) {
                     int px = p.getKey(), py = p.getValue();
                     if ((game.getPlayerBoard(px, py) != Game.UNCHECKED && game.getPlayerBoard(px, py) != Game.QUESTION)
@@ -267,7 +267,7 @@ public class AI {
                     findANewComponent = true;
                     points.add(new Pair<>(px, py));
                     ccGraph[px][py] = id;
-                    // 找出「数字格子周围的未知格子」的周围的其余数字格子，加入队列（有点绕）
+                    // 找出「数字格子周围的未知格子」的周围的其余数字格子, 加入队列 (有点绕)
                     for (Pair<Integer, Integer> p2 : game.getAround(px, py)) {
                         if (game.getPlayerBoard(p2.getKey(), p2.getValue()) < 9) que.offer(p2);
                     }
@@ -283,7 +283,7 @@ public class AI {
     }
 
     /**
-     * 计算每个格子有雷的概率（默认当前每个旗子设的都是对的，懒得自检了）
+     * 计算每个格子有雷的概率 (默认当前每个旗子设的都是对的, 懒得自检了)
      * @param game 一局游戏
      * @return 每个格子的有雷概率
      */
@@ -298,12 +298,12 @@ public class AI {
         for (List<Pair<Integer, Integer>> points : ccList) {
             Map<Integer, int[]> perm = new HashMap<>(16);
             backtrackAllPossiblePermutations(game, game.getPlayerBoard(), points,
-                    perm, 0, 0); // 如果 permutationCnt 为 0，说明玩家设的旗有错，会异常
+                    perm, 0, 0); // 如果 permutationCnt 为 0, 说明玩家设的旗有错, 会异常
             ccPermList.add(perm);
         }
         double avgPermMineCnt = calculateProbabilitiesOfAllConnectedComponents(game, ccList, ccPermList, probGraph);
 
-        // 所有未知孤立格子（即周围没有已知数字格子的格子）统一计算概率为“平均剩余雷数/未知孤立格子数”
+        // 所有未知孤立格子 (即周围没有已知数字格子的格子) 统一计算概率为 "平均剩余雷数/未知孤立格子数"
         int unknownCellCnt = 0;
         for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
             if ((game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION)
@@ -329,9 +329,9 @@ public class AI {
     }
 
     /**
-     * 进阶扫雷 AI，将所有概率为 100% 或 0% 的格子扫掉
+     * 进阶扫雷 AI, 将所有概率为 100% 或 0% 的格子扫掉
      * @param game 一局游戏
-     * @return 最后一次计算得概率后没有利用，将其返回以重复利用
+     * @return 最后一次计算得概率后没有利用, 将其返回以重复利用
      */
     public static double[][] sweepAllAdvanced(Game game) {
         boolean loop = true;
@@ -342,8 +342,8 @@ public class AI {
             if (game.getGameState() != Game.PROCESS) break;
             prob = calculateAllProbabilities(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                // 只扫爆雷概率为 0 的，不标爆雷概率为 1 的。
-                // 虽然概率计算应该是精确的，但是还是有极低概率概率为 1 但却不是雷（可能是精度问题）。
+                // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
+                // 虽然概率计算应该是精确的, 但是还是有极低概率概率为 1 但却不是雷 (可能是精度问题).
                 // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
                 if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
                     game.uncover(i, j);
@@ -379,8 +379,8 @@ public class AI {
                 if (i == 0 || i == game.getRow() - 1) ++cor;
                 if (j == 0 || j == game.getCol() - 1) ++cor;
                 if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
-                    // 同概率的话在角落的格子优先探测，可以将概率从 29% 提升到 33%。
-                    // 或者当两者都在（或都不在）角落时，选择周围 24 格数字格子更多的。
+                    // 同概率的话在角落的格子优先探测, 可以将概率从 29% 提升到 33%.
+                    // 或者当两者都在 (或都不在) 角落时, 选择周围 24 格数字格子更多的.
                     if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
                 }
                 else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
@@ -390,15 +390,15 @@ public class AI {
                 corner = cor;
                 intensity = in;
             }
-            // 只找 prob 低的 uncover，不找 prob 高的 setFlag，因为 setFlag 不影响游戏状态，标错了也不知道。
+            // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
             game.uncover(maxX, maxY);
         }
     }
 
     /**
-     * 使用回溯法，找出某连通分量中所有的雷的布局可能性
+     * 使用回溯法, 找出某连通分量中所有的雷的布局可能性
      * @param game 一局游戏
-     * @param board 回溯时可被任意修改的棋盘（防止在游戏本体上修改出问题）
+     * @param board 回溯时可被任意修改的棋盘 (防止在游戏本体上修改出问题)
      * @param points 一个连通分量所有的点
      * @param ccPerm 当有 key 个雷时的所有情况
      * @param curIndex 当前回溯位置的下标
@@ -409,7 +409,7 @@ public class AI {
                                                         Map<Integer, int[]> ccPerm, int curIndex, int curMine) {
         // 成功找到一个可能的排列
         if (curIndex >= points.size()) {
-            int[] count; // count 前 points.size() 位保存所有情况中格子有雷的次数，最后一位保存回溯出多少种情况
+            int[] count; // count 前 points.size() 位保存所有情况中格子有雷的次数, 最后一位保存回溯出多少种情况
             if (ccPerm.containsKey(curMine)) count = ccPerm.get(curMine);
             else {
                 count = new int[points.size() + 1];
@@ -446,7 +446,7 @@ public class AI {
         double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
         int maxPermMineCnt = 0; // 所有连通分量最多有多少个雷
 
-        // 将每个连通分量所有可能排列中最多的雷数相加，计算 maxPermMineCnt
+        // 将每个连通分量所有可能排列中最多的雷数相加, 计算 maxPermMineCnt
         for (Map<Integer, int[]> perm : ccPermList) {
             int max = 0;
             for (int key : perm.keySet()) {
@@ -455,9 +455,7 @@ public class AI {
             maxPermMineCnt += max;
         }
 
-        // 如果 maxPermMineCnt 最多也比剩余雷数 mineLeft 少（或相等），则可以安心地独立计算每个连通分量的概率
-//        if(true) {
-//        if (false) {
+        // 如果 maxPermMineCnt 最多也比剩余雷数 mineLeft 少 (或相等), 则可以安心地独立计算每个连通分量的概率
         if (maxPermMineCnt <= mineLeft) {
             for (int index = 0; index < ccList.size(); ++index) {
                 List<Pair<Integer, Integer>> points = ccList.get(index);
@@ -477,40 +475,32 @@ public class AI {
             return avgPermMineCnt;
         }
 
-        // 反之如果 maxPermMineCnt > mineLeft，需要综合计算所有连通分量才能得出精确概率
-        // 以下算法计算：当一个连通分量有 x 个雷时，在全局中有多少组合包含了它
+        // 反之如果 maxPermMineCnt > mineLeft, 需要综合计算所有连通分量才能得出精确概率
+        // 以下算法计算: 当一个连通分量有 x 个雷时, 在全局中有多少组合包含了它
         Deque<Map<Integer, Integer>> stack = new ArrayDeque<>(ccPermList.size());
         Map<Integer, Integer> outOfRange = new HashMap<>();
         outOfRange.put(0, 1);
         stack.addFirst(outOfRange);
-//        System.out.println("*******" + mineLeft + ", " + maxPermMineCnt + ", " + ccList.size());
         for (int i = 0; i < ccPermList.size(); ++i) {
             Map<Integer, Integer> pre = stack.getFirst();
             Map<Integer, int[]> toMerge = ccPermList.get(i);
             Map<Integer, Integer> cur = mergeTwoPermutations(pre, toMerge, mineLeft, true);
             stack.addFirst(cur);
-
-//            System.out.print("< ");
-//            for (Map.Entry<Integer, int[]> e : toMerge.entrySet())  System.out.print(" | " + e.getKey() + ", " + e.getValue()[e.getValue().length - 1]);
-//            System.out.println();
-//            System.out.print(" >");
-//            for (Map.Entry<Integer, Integer> e : cur.entrySet())  System.out.print(" | " + e.getKey() + ", " + e.getValue());
-//            System.out.println();
         }
-        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量（要求组合中所有雷数 <= mineLeft）
+        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量 (要求组合中所有雷数 <= mineLeft)
         for (int cnt : stack.removeFirst().values()) allPermCnt += cnt;
         Map<Integer, Integer> right = outOfRange;
         for (int i = ccPermList.size() - 1; i >= 0; --i) { // 遍历每个连通分量
             List<Pair<Integer, Integer>> ccPoints = ccList.get(i); // 该分量的所有格子坐标
-            Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数（key）情况下的排列（value）
+            Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数 (key) 情况下的排列 (value)
 
             Map<Integer, Integer> left = stack.removeFirst();
-            // 除该连通分量之外，其他所有连通分量有多少组合使雷数小于等于 minLeft（key 为雷数（小于等于 minLeft），value 为组合总个数）
+            // 除该连通分量之外, 其他所有连通分量有多少组合使雷数小于等于 minLeft (key 为雷数 (小于等于 minLeft), value 为组合总个数)
             Map<Integer, Integer> exceptCur = mergeTwoPermutations(left, right, mineLeft, false);
             right = mergeTwoPermutations(right, ccPerms, mineLeft, true);
 
             for (Map.Entry<Integer, int[]> cur :  ccPerms.entrySet()) { // 遍历该连通分量的所有可能雷数
-                int curPermCnt = 0; // 所有其他分量的可行组合中，多少种加上当前雷数依然小于等于 mineLeft
+                int curPermCnt = 0; // 所有其他分量的可行组合中, 多少种加上当前雷数依然小于等于 mineLeft
                 for (Map.Entry<Integer, Integer> other : exceptCur.entrySet()) {
                     if (other.getKey() + cur.getKey() <= mineLeft) {
                         curPermCnt += other.getValue();
@@ -518,9 +508,9 @@ public class AI {
                 }
                 for (int j = 0; j < ccPoints.size(); ++j) {
                     int px = ccPoints.get(j).getKey(), py = ccPoints.get(j).getValue();
-                    // 当前连通分量在有这些个雷时，当前格子有雷的概率 prob =
-                    // 当前雷数下格子有雷的次数/当前雷数下排列次数*当前雷数全局出现总次数/所有可行排列总数。
-                    // 其中，当前雷数全局出现总次数=当前雷数下排列次数*curPermCnt。
+                    // 当前连通分量在有这些个雷时, 当前格子有雷的概率 prob =
+                    // 当前雷数下格子有雷的次数/当前雷数下排列次数*当前雷数全局出现总次数/所有可行排列总数.
+                    // 其中, 当前雷数全局出现总次数=当前雷数下排列次数*curPermCnt.
                     // 于是综合如下
                     double prob = (double) cur.getValue()[j] * curPermCnt / allPermCnt;
                     probGraph[px][py] += prob;
@@ -557,7 +547,7 @@ public class AI {
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
-     * @param radius 半径（最终范围为边长 2r-1 的一个正方形）
+     * @param radius 半径 (最终范围为边长 2r-1 的一个正方形)
      * @return 数字格子个数
      */
     private static int getNumberCellCntAround(Game game, int x, int y, int radius) {

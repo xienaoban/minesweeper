@@ -355,9 +355,11 @@ public class GUI extends JFrame {
         if (this.timeThread != null && !this.timeThread.isInterrupted()) this.timeThread.interrupt();
         this.timeThread = new TimeThread(this.timeLabel, this.cheat ? 0x7fffffff : 0);
 
-        if (this.canvas != null) this.remove(this.canvas);
-        this.canvas = new BoardCanvas();
-        this.getContentPane().add(this.canvas, 1);
+        if (this.canvas == null) {
+            this.canvas = new BoardCanvas();
+            this.getContentPane().add(this.canvas, 1);
+        }
+        else this.canvas.requestRepaintAll();
     }
 
     private void setFrame() {

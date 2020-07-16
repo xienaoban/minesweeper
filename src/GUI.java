@@ -370,12 +370,12 @@ public class GUI extends JFrame {
         this.infoBorderCanvas.setBounds(5, 5, boardWidth + 10, INFO_HEIGHT - 5);
         this.boardBorderCanvas.setBounds(5, INFO_HEIGHT + 10, boardWidth + 10, boardHeight + 10);
 
-        this.timeLabelCanvas.setBounds(13, 13, 74, 34);
-        this.mineLabelCanvas.setBounds(boardWidth - 60 - 4 - 3, 13, 74, 34);
+        this.timeLabelCanvas.setBounds(13, 13, 80, 34);
+        this.mineLabelCanvas.setBounds(boardWidth - 73, 13, 80, 34);
         this.faceCanvas.setBounds(10 + boardWidth / 2 - 15 - 2, 13, 34, 34);
 
-        this.timeLabel.setBounds(13 + 2, 13 + 2, 70, 30);
-        this.mineLabel.setBounds(boardWidth - 60 - 2 - 3, 13 + 2, 70, 30);
+        this.timeLabel.setBounds(13 + 2, 13 + 2, 76, 30);
+        this.mineLabel.setBounds(boardWidth - 71, 13 + 2, 76, 30);
         this.setMineLabel();
         this.faceCanvas.setEmoji(FACE_NORMAL);
     }

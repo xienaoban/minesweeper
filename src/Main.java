@@ -22,61 +22,61 @@ public class Main {
     private static Game game;
 
     public static void main(String[] args) {
-//        testAI(args);
-        if (args.length == 0) new GUI();
-        else if (args[0].equals("test")) testAI(args);
-        else if (args[0].equals("cli")) CLI();
-        else if (args[0].equals("help")) {
-            System.out.println("参数     描述");
-            System.out.println(" 无       GUI 入口");
-            System.out.println(" cli      CLI 入口");
-            System.out.println(" test     测试 AI 胜率，详情输入 test --help");
+        if (args.length == 0 || args[0].equals("gui")) new GUI();
+        else if (args[0].contains("t")) testAI(args);
+        else if (args[0].contains("c")) CLI();
+        else if (args[0].contains("h")) {
+            System.out.println("参数 \t描述");
+            System.out.println("无   \tGUI 入口");
+            System.out.println("gui  \tGUI 入口");
+            System.out.println("cli  \tCLI 入口");
+            System.out.println("test \t测试 AI 胜率 (详情输入 test --help)");
+            System.out.println("help \t查看帮助");
         }
+        else System.out.println("参数错误. 输入 help 查看更多信息.");
     }
 
     /**
      * CLI 扫雷入口
-     * 没仔细做，算是个对 Game 提供的 API 的简单应用展示
+     * 没仔细做, 算是个对 Game 提供的 API 的简单应用展示
      */
     private static void CLI() {
         Scanner sc = new Scanner(System.in);
-        System.out.print("输入 行 列 雷数：");
+        System.out.print("输入 行 列 雷数: ");
         Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
         while (true) {
-            System.out.print("输入 操作码 x y：");
-            int op = sc.nextInt();
-            int x = sc.nextInt();
-            int y = sc.nextInt();
+            System.out.print("输入操作: ");
+            String ops = sc.next();
+            char op = ops.length() == 1 ? ops.charAt(0) : 'h';
+            int x = -1, y = -1;
+            if (op == 'l' || op == 'r' || op == 'c') {
+                x = sc.nextInt();
+                y = sc.nextInt();
+            }
             int sucess = 0;
             switch (op) {
-                case 0: sucess = game.uncover(x, y); break;
-                case 1: sucess = game.cycFlagAndQuestion(x, y); break;
-                case 2: sucess = game.check(x, y); break;
-                case 3: AI.sweepToEnd(game); sucess = game.getGameState(); break;
-                case 4:
-                    Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res =
-                            AI.checkTwoUncoveredCell(game, x, y, x + 1, y);
-                    if (res == null) System.out.println("null");
-                    else {
-                        System.out.println("uncover: " + res.getKey().size());
-                        for (Pair<Integer, Integer> p : res.getKey()) {
-                            System.out.println("" + p.getKey() + ", " + p.getValue());
-                        }
-                        System.out.println("setFlag: " + res.getValue().size());
-                        for (Pair<Integer, Integer> p : res.getValue()) {
-                            System.out.println("" + p.getKey() + ", " + p.getValue());
-                        }
-                    }
+                case 'l': sucess = game.uncover(x, y); break;
+                case 'r': sucess = game.cycFlagAndQuestion(x, y); break;
+                case 'c': sucess = game.check(x, y); break;
+                case 'a': AI.sweepToEnd(game); sucess = game.getGameState(); break;
+                default:
+                    System.out.println("l <x> <y>    模拟左键 (揭开)");
+                    System.out.println("r <x> <y>    模拟右键 (标旗, 标问号)");
+                    System.out.println("c <x> <y>    模拟左右同时按 (检测周围格子)");
+                    System.out.println("a            使用 AI 扫完全部");
+                    continue;
             }
             game.printPlayerBoardToConsole();
-            System.out.println(sucess);
-            if (sucess != Game.PROCESS) break;
+            if (sucess != Game.PROCESS) {
+                System.out.println(sucess == Game.WIN ? "胜利!" : "失败!");
+                break;
+            }
         }
     }
 
     /**
      * AI 测试
-     * 反复运行若干局，计算胜率
+     * 反复运行若干局, 计算胜率
      * @param args 执行参数
      */
     private static void testAI(String[] args) {
@@ -111,21 +111,28 @@ public class Main {
                     }
                     break;
                 case "-h": case "--help":
-                    System.out.println("--times         -t 测试的局数，默认 10000 次。");
-                    System.out.println("--rule          -r 测试的游戏规则，winxp 或 win7，默认 winxp。");
-                    System.out.println("--difficulty    -d 测试的游戏难度，beginner（beg，1）、intermediate（int，2）、expert（exp，3）。");
+                    System.out.println("--times         -t 测试的局数, 默认 10000 次.");
+                    System.out.println("--rule          -r 测试的游戏规则, winxp 或 win7, 默认 winxp.");
+                    System.out.println("--difficulty    -d 测试的游戏难度, 初级 (beg, 1), 中级(int, 2), 高级 (exp, 3).");
                     return;
                 default: error = true;
             }
             if (error) {
-                System.out.println("参数格式错误，键入 -h 或 --help 以获得帮助。");
+                System.out.println("参数格式错误, 键入 test --help 以获得帮助.");
                 return;
             }
         }
+        System.out.printf("执行次数: %d    游戏规则: %s    难度: %s", times,
+                gameRule == Game.GAME_RULE_WIN_XP ? "Win XP" : "Win 7",
+                difficulty == Game.DIFFICULTY_BEGINNER ? "初级" : (
+                        difficulty == Game.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
+                )
+        );
+        System.out.println();
 
         int winCnt = 0;
         int[] exploreRateView = new int[11];
-        // 如果遇到连通分量特别长导致运算时间很久，每隔2秒输出一次
+        // 如果遇到连通分量特别长导致运算时间很久, 每隔2秒输出一次
         Thread th = new Thread() {
             public void run() {
                 try {
@@ -134,8 +141,8 @@ public class Main {
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
                         if (diff > 2000) {
-                            System.out.println("第 " + round + " 局耗时超预期，可能是连通分量太长。当前步数："
-                                    + game.getStep() + "。当前连通分量：");
+                            System.out.println("第 " + round + " 局耗时超预期, 可能是连通分量太长. 当前步数: "
+                                    + game.getStep() + ". 当前连通分量: ");
                             AI.printConnectedComponent(AI.findAllConnectedComponents(game).getValue());
                             time = System.currentTimeMillis();
                         }
@@ -164,7 +171,7 @@ public class Main {
                 exploreRate = 100 * explored / (game.getRow() * game.getCol());
             }
             ++exploreRateView[exploreRate / 10];
-            System.out.printf("第 %d 局：%s    探索程度：%s    当前胜率：%.4f%%\r", round, (win ? "胜" : "负"),
+            System.out.printf("第 %d 局: %s    探索程度: %s    当前胜率: %.4f%%\r", round, (win ? "胜" : "负"),
                     (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
                     (double)winCnt / (double)round * 100);
         }
@@ -174,11 +181,11 @@ public class Main {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
         System.out.print("                                                         \r");
-        System.out.printf("胜率：%.2f%%    运行局数：%d    运行总耗时：%d秒    平均每局耗时：%d毫秒",
+        System.out.printf("胜率: %.2f%%    运行局数: %d    运行总耗时: %d秒    平均每局耗时: %d毫秒",
                 (double)winCnt / (double)times * 100, times, totalTime / 1000, totalTime / times);
         System.out.println();
-        System.out.println("探索程度统计：");
-        System.out.println("⮝ 占比");
+        System.out.println("探索程度统计: ");
+        System.out.println("A 占比");
         for (int i = 1; i < 10; ++i) {
             System.out.print("|");
             for (int v :exploreRateView) System.out.print(v >= 10 - i ? "  M " : "    ");

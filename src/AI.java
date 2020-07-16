@@ -342,7 +342,9 @@ public class AI {
             if (game.getGameState() != Game.PROCESS) break;
             prob = calculateAllProbabilities(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
+                // 只扫爆雷概率为 0 的，不标爆雷概率为 1 的。
+                // 虽然概率计算应该是精确的，但是还是有极低概率概率为 1 但却不是雷（可能是精度问题）。
+                // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
                 if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
                     game.uncover(i, j);
                     loop = true;
@@ -379,8 +381,6 @@ public class AI {
                 if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
                     // 同概率的话在角落的格子优先探测，可以将概率从 29% 提升到 33%。
                     // 或者当两者都在（或都不在）角落时，选择周围 24 格数字格子更多的。
-                    // 但是如你所见，我的 intensity 变量初始化为了 1 而不是 0 或负数，
-                    // 因为我发现初始化为 1 比初始化为 0 胜率高了 2%……很迷很玄学。
                     if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
                 }
                 else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
@@ -557,7 +557,7 @@ public class AI {
      * @param game 一局游戏
      * @param x 目标格子 x 坐标
      * @param y 目标格子 y 坐标
-     * @param radius 半径（最终范围为 (2*radius)^2 的一个正方形）
+     * @param radius 半径（最终范围为边长 2r-1 的一个正方形）
      * @return 数字格子个数
      */
     private static int getNumberCellCntAround(Game game, int x, int y, int radius) {

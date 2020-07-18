@@ -1,6 +1,3 @@
-import javafx.util.Pair;
-
-import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -53,12 +50,12 @@ public class Main {
                 x = sc.nextInt();
                 y = sc.nextInt();
             }
-            int sucess = 0;
+            int success;
             switch (op) {
-                case 'l': sucess = game.uncover(x, y); break;
-                case 'r': sucess = game.cycFlagAndQuestion(x, y); break;
-                case 'c': sucess = game.check(x, y); break;
-                case 'a': AI.sweepToEnd(game); sucess = game.getGameState(); break;
+                case 'l': success = game.uncover(x, y); break;
+                case 'r': success = game.cycFlagAndQuestion(x, y); break;
+                case 'c': success = game.check(x, y); break;
+                case 'a': AI.sweepToEnd(game); success = game.getGameState(); break;
                 default:
                     System.out.println("l <x> <y>    模拟左键 (揭开)");
                     System.out.println("r <x> <y>    模拟右键 (标旗, 标问号)");
@@ -67,8 +64,8 @@ public class Main {
                     continue;
             }
             game.printPlayerBoardToConsole();
-            if (sucess != Game.PROCESS) {
-                System.out.println(sucess == Game.WIN ? "胜利!" : "失败!");
+            if (success != Game.PROCESS) {
+                System.out.println(success == Game.WIN ? "胜利!" : "失败!");
                 break;
             }
         }
@@ -123,7 +120,7 @@ public class Main {
             }
         }
         System.out.printf("执行次数: %d    游戏规则: %s    难度: %s", times,
-                gameRule == Game.GAME_RULE_WIN_XP ? "Win XP" : "Win 7",
+                gameRule == Game.GAME_RULE_WIN_XP ? "WinXP" : "Win7",
                 difficulty == Game.DIFFICULTY_BEGINNER ? "初级" : (
                         difficulty == Game.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
                 )

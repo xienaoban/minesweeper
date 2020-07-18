@@ -218,23 +218,6 @@ public class AI {
     }
 
     /**
-     * 检查一个非数字的格子, 根据周围的数字格子判断该格子在被判定为是雷/非雷的情况下是否合法
-     * @param game 一局游戏
-     * @param board 棋局. 标记为 MINE 或 FLAG 说明判定为雷; 标记为 NOT_MINE 说明判定为非雷
-     * @param x 目标格子 x 坐标
-     * @param y 目标格子 y 坐标
-     * @return 是否合法
-     */
-    public static boolean isUncheckedCellLegal(Game game, int[][] board, int x, int y) {
-        if (board[x][y] < 9) return false;
-        for (Pair<Integer, Integer> p : game.getAround(x, y)) {
-            int px = p.getKey(), py = p.getValue();
-            if (board[px][py] < 9 && !isUncoveredCellLegal(game, board, px, py)) return false;
-        }
-        return true;
-    }
-
-    /**
      * 寻找所有连通分量
      * 一个连通分量表示, 有多种可能性且相互影响的一个区域
      * @param game 一局游戏
@@ -343,7 +326,7 @@ public class AI {
             prob = calculateAllProbabilities(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
-                // 虽然概率计算应该是精确的, 但是还是有极低概率概率为 1 但却不是雷 (可能是精度问题).
+                // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
                 // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
                 if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
                     game.uncover(i, j);
@@ -360,8 +343,8 @@ public class AI {
      * @param game 一局游戏
      */
     public static void sweepToEnd(Game game) {
-        // Win7 的规则下第一步点击距离角落两格的点最好
         if (game.getStep() == 0) {
+            // Win7 的规则下第一步点击距离角落两格的点最好
             if (game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
             else game.uncover(0, 0);
         }
@@ -558,6 +541,23 @@ public class AI {
             if (game.getPlayerBoard(x, y) < 9) ++res;
         }
         return res;
+    }
+
+    /**
+     * 检查一个非数字的格子, 根据周围的数字格子判断该格子在被判定为是雷/非雷的情况下是否合法
+     * @param game 一局游戏
+     * @param board 棋局. 标记为 MINE 或 FLAG 说明判定为雷; 标记为 NOT_MINE 说明判定为非雷
+     * @param x 目标格子 x 坐标
+     * @param y 目标格子 y 坐标
+     * @return 是否合法
+     */
+    private static boolean isUncheckedCellLegal(Game game, int[][] board, int x, int y) {
+        if (board[x][y] < 9) return false;
+        for (Pair<Integer, Integer> p : game.getAround(x, y)) {
+            int px = p.getKey(), py = p.getValue();
+            if (board[px][py] < 9 && !isUncoveredCellLegal(game, board, px, py)) return false;
+        }
+        return true;
     }
 
     /**

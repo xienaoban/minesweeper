@@ -5,6 +5,7 @@ import static java.awt.event.KeyEvent.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -19,7 +20,7 @@ public class GUI extends JFrame {
 
     private static final int INFO_HEIGHT = 55;
 
-    private int row, col, mineCount, gameMode;
+    private int row, col, mineCount, gameRule;
     private boolean cheat, showMine;
     private Game game;
 
@@ -42,8 +43,9 @@ public class GUI extends JFrame {
         this.cellLength = 30;
         this.showMine = false;
         this.initMenu();
-        this.gameMode = Game.GAME_RULE_WIN_XP;
-        this.initGame(9, 9, 10, false);
+        this.cheat = false;
+        this.gameRule = Game.GAME_RULE_WIN_XP;
+        this.initGame(Game.DIFFICULTY_BEGINNER);
         this.setVisible(true);
     }
 
@@ -74,22 +76,19 @@ public class GUI extends JFrame {
         gameMenu.addSeparator();
         gameMenu.add(cellLengthMenuItem);
 
-        JCheckBoxMenuItem cheatMenuItem   = new JCheckBoxMenuItem("启用作弊");
-        JMenuItem         undoMenuItem    = new JMenuItem("撤销操作");
-        JMenuItem         mineMenuItem    = new JMenuItem("启用透视");
-        JMenuItem         luckyMenuItem   = new JMenuItem("欧皇模式");
-        JMenuItem         unluckyMenuItem = new JMenuItem("非酋模式");
+        JCheckBoxMenuItem cheatMenuItem         = new JCheckBoxMenuItem("启用作弊");
+        JMenuItem         undoMenuItem          = new JMenuItem("撤销操作");
+        JMenuItem         mineMenuItem          = new JMenuItem("启用透视");
+        JMenuItem         customMineMenuItem    = new JMenuItem("导入棋盘");
         cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
         undoMenuItem.setEnabled(cheat);
         mineMenuItem.setEnabled(cheat);
-        luckyMenuItem.setEnabled(cheat);
-        unluckyMenuItem.setEnabled(cheat);
+        customMineMenuItem.setEnabled(cheat);
         cheatMenu.add(cheatMenuItem);
         cheatMenu.addSeparator();
         cheatMenu.add(undoMenuItem);
         cheatMenu.add(mineMenuItem);
-        cheatMenu.add(luckyMenuItem);
-        cheatMenu.add(unluckyMenuItem);
+        cheatMenu.add(customMineMenuItem);
 
 
         JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（快）");
@@ -112,14 +111,14 @@ public class GUI extends JFrame {
         menuBar.add(aboutMenu);
 
         newGameMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_F2, 0));
-        newGameMenuItem.addActionListener(e -> initGame(row, col, mineCount, cheat));
+        newGameMenuItem.addActionListener(e -> initGame());
         beginnerMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_1, CTRL_MASK));
         beginnerMenuItem.addActionListener(e -> {
             beginnerMenuItem.setSelected(true);
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
-            initGame(9, 9, 10, cheat);
+            initGame(Game.DIFFICULTY_BEGINNER);
         });
         intermediateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_2, CTRL_MASK));
         intermediateMenuItem.addActionListener(e -> {
@@ -127,7 +126,7 @@ public class GUI extends JFrame {
             intermediateMenuItem.setSelected(true);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
-            initGame(16, 16, 40, cheat);
+            initGame(Game.DIFFICULTY_INTERMEDIATE);
         });
         advancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_3, CTRL_MASK));
         advancedMenuItem.addActionListener(e -> {
@@ -135,73 +134,72 @@ public class GUI extends JFrame {
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(true);
             customMenuItem.setSelected(false);
-            initGame(16, 30, 99, cheat);
+            initGame(Game.DIFFICULTY_EXPERT);
         });
         customMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_4, CTRL_MASK));
         customMenuItem.addActionListener(e -> {
             customMenuItem.setSelected(!customMenuItem.isSelected());
             try {
                 String s = row + " " + col + " " + mineCount;
-                String[] arr = JOptionPane.showInputDialog("自定义棋盘(行 列 雷)", s).split(" ");
+                String[] arr = JOptionPane.showInputDialog(faceCanvas, "自定义棋盘(行 列 雷)", s).split(" ");
                 int r = Integer.parseInt(arr[0]);
                 int c = Integer.parseInt(arr[1]);
                 int m = Integer.parseInt(arr[2]);
-                if (r < 1 || c < 1 || m < 0 || m > r * c - (gameMode == Game.GAME_RULE_WIN_XP ? 1 : 9)) {
+                if (r < 1 || c < 1 || m < 0 || m > r * c - (gameRule == Game.GAME_RULE_WIN_XP ? 1 : 9)) {
                     throw new Exception("数字范围错误，棋盘上容纳不下这么多雷。");
                 }
                 beginnerMenuItem.setSelected(false);
                 intermediateMenuItem.setSelected(false);
                 advancedMenuItem.setSelected(false);
                 customMenuItem.setSelected(true);
-                initGame(r, c, m, cheat);
+                initGame(r, c, m);
             }
             catch (NullPointerException ignored) {
             }
             catch (Exception ex) {
-                JOptionPane.showMessageDialog(null, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
             }
         });
         gameRuleWinXpMenuItem.addActionListener(e -> {
-            gameMode = Game.GAME_RULE_WIN_XP;
+            gameRule = Game.GAME_RULE_WIN_XP;
             gameRuleWinXpMenuItem.setSelected(true);
             gameRuleWin7MenuItem.setSelected(false);
-            initGame(row, col, mineCount, cheat);
+            if (game.getStep() == 0) initGame();
         });
         gameRuleWin7MenuItem.addActionListener(e -> {
             gameRuleWin7MenuItem.setSelected(!gameRuleWin7MenuItem.isSelected());
             if (mineCount > row * col - 9) {
-                JOptionPane.showMessageDialog(null, "Win7 规则下当前自定义棋盘上的雷最多为 " + (row * col - 9) + "。",
+                JOptionPane.showMessageDialog(faceCanvas, "Win7 规则下当前自定义棋盘上的雷最多为 " + (row * col - 9) + "。",
                         "数字有误", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            gameMode = Game.GAME_RULE_WIN_7;
+            gameRule = Game.GAME_RULE_WIN_7;
             gameRuleWinXpMenuItem.setSelected(false);
             gameRuleWin7MenuItem.setSelected(true);
-            initGame(row, col, mineCount, cheat);
+            if (game.getStep() == 0) initGame();
         });
         cellLengthMenuItem.addActionListener(e -> {
             try {
-                cellLength = Integer.parseInt(JOptionPane.showInputDialog("格子大小设置", String.valueOf(cellLength)));
+                cellLength = Integer.parseInt(JOptionPane.showInputDialog(faceCanvas, "格子大小设置", String.valueOf(cellLength)));
                 setFrame();
-                canvas.requestRepaintAll();
+                canvas.requestRepaintAll(false);
             }
             catch (NumberFormatException ignored) {}
             catch (Exception ex) {
-                JOptionPane.showMessageDialog(null, "格式错误，请输入合法的整数。", "错误",JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(faceCanvas, "格式错误，请输入合法的整数。", "错误",JOptionPane.ERROR_MESSAGE);
             }
         });
 
+        cheatMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_J, CTRL_MASK));
         cheatMenuItem.addActionListener(e -> {
-            int res = JOptionPane.showConfirmDialog(null, "开启/关闭作弊会新开一局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
+            int res = JOptionPane.showConfirmDialog(faceCanvas, "开启/关闭作弊会新开一局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
             if (res != 0) return;
             cheat = cheatMenuItem.isSelected();
             if (!cheat) showMine = false;
-//            cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
             undoMenuItem.setEnabled(cheat);
             mineMenuItem.setEnabled(cheat);
-            luckyMenuItem.setEnabled(cheat);
-            unluckyMenuItem.setEnabled(cheat);
-            initGame(row, col, mineCount, cheat);
+            customMineMenuItem.setEnabled(cheat);
+            initGame();
         });
         undoMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, CTRL_MASK));
         undoMenuItem.addActionListener(e -> { game.undo(); setFrameAfterOperation(); });
@@ -215,80 +213,95 @@ public class GUI extends JFrame {
                 canvas.repaint();
             }
         });
-
-        checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Q, CTRL_MASK));
-        checkBasicMenuItem.addActionListener(e -> {
-            new Thread() {
-                public void run() {
-                    int[] res = AI.checkAllBasic(game);
-                    if (res[0] == AI.UNKNOWN) return;
-                    int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
-                    int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
-                    try {
-                        for (int i = 0; i < 3; ++ i) {
-                            canvas.highlight(arr1); Thread.sleep(150);
-                            canvas.highlight(arr0); Thread.sleep(100);
-                        }
-                        canvas.highlight(null);
-                    } catch (InterruptedException ex) {
-                        ex.printStackTrace();
+        customMineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_N, CTRL_MASK));
+        customMineMenuItem.addActionListener(e -> {
+            JFileChooser jfc = new JFileChooser(".");
+            jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            int openState = jfc.showDialog(faceCanvas, "选择");
+            if (openState == JFileChooser.CANCEL_OPTION) return;
+            File file = jfc.getSelectedFile();
+            try {
+                FileReader fileReader = new FileReader(file);
+                BufferedReader bufferedReader = new BufferedReader(fileReader);
+                List<String> lineList = new ArrayList<>();
+                String line = bufferedReader.readLine();
+                while (line != null && !line.equals("")) {
+                    lineList.add(line);
+                    line = bufferedReader.readLine();
+                }
+                bufferedReader.close();
+                fileReader.close();
+                boolean[][] mineBoard = new boolean[lineList.size()][lineList.get(0).length()];
+                for (int i = 0; i < lineList.size(); ++i) {
+                    line = lineList.get(i);
+                    for (int j = 0; j < lineList.get(0).length(); ++j) {
+                        mineBoard[i][j] = line.charAt(j) == '*';
                     }
                 }
-            }.start();
+                beginnerMenuItem.setSelected(false);
+                intermediateMenuItem.setSelected(false);
+                advancedMenuItem.setSelected(false);
+                customMenuItem.setSelected(true);
+                initGame(new Game(mineBoard));
+            } catch (Exception exception) {
+                JOptionPane.showMessageDialog(faceCanvas, exception.getMessage(),
+                        "文件读取错误", JOptionPane.ERROR_MESSAGE);
+            }
         });
+
+        checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Q, CTRL_MASK));
+        checkBasicMenuItem.addActionListener(e -> new Thread(() -> {
+            int[] res = AI.checkAllBasic(game);
+            if (res[0] == AI.UNKNOWN) return;
+            int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
+            int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
+            try {
+                for (int i = 0; i < 3; ++ i) {
+                    canvas.highlight(arr1); Thread.sleep(150);
+                    canvas.highlight(arr0); Thread.sleep(100);
+                }
+                canvas.highlight(null);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        }).start());
 
         sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
-        sweepBasicMenuItem.addActionListener(e -> {
-            new Thread() {
-                public void run() {
-                    canvas.doNotUpdateTheFuckingCanvasNow(true);
-                    AI.sweepAllBasic(game);
-                    canvas.doNotUpdateTheFuckingCanvasNow(false);
-                    setFrameAfterOperation();
-                }
-            }.start();
-        });
+        sweepBasicMenuItem.addActionListener(e -> new Thread(() -> {
+            canvas.doNotUpdateTheFuckingCanvasNow(true);
+            AI.sweepAllBasic(game);
+            canvas.doNotUpdateTheFuckingCanvasNow(false);
+            setFrameAfterOperation();
+        }).start());
 
         sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
-        sweepAdvancedMenuItem.addActionListener(e -> {
-            new Thread() {
-                public void run() {
-                    canvas.doNotUpdateTheFuckingCanvasNow(true);
-                    AI.sweepAllAdvanced(game);
-                    canvas.doNotUpdateTheFuckingCanvasNow(false);
-                    setFrameAfterOperation();
-                }
-            }.start();
-        });
+        sweepAdvancedMenuItem.addActionListener(e -> new Thread(() -> {
+            canvas.doNotUpdateTheFuckingCanvasNow(true);
+            AI.sweepAllAdvanced(game);
+            canvas.doNotUpdateTheFuckingCanvasNow(false);
+            setFrameAfterOperation();
+        }).start());
 
         sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
-        sweepToEndMenuItem.addActionListener(e -> {
-            new Thread() {
-                public void run() {
-                    canvas.doNotUpdateTheFuckingCanvasNow(true);
-                    AI.sweepToEnd(game);
-                    canvas.doNotUpdateTheFuckingCanvasNow(false);
-                    setFrameAfterOperation();
-                }
-            }.start();
-        });
+        sweepToEndMenuItem.addActionListener(e -> new Thread(() -> {
+            canvas.doNotUpdateTheFuckingCanvasNow(true);
+            AI.sweepToEnd(game);
+            canvas.doNotUpdateTheFuckingCanvasNow(false);
+            setFrameAfterOperation();
+        }).start());
 
         aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
-        aiDebugMenuItem.addActionListener(e -> {
-            new Thread() {
-                public void run() {
-                    int[][] cc = AI.findAllConnectedComponents(game).getValue();
-                    double[][] prob = AI.calculateAllProbabilities(game);
-                    canvas.setConnectedComponentsAndProbability(cc, prob);
-                }
-            }.start();
-        });
+        aiDebugMenuItem.addActionListener(e -> new Thread(() -> {
+            int[][] cc = AI.findAllConnectedComponents(game).getValue();
+            double[][] prob = AI.calculateAllProbabilities(game);
+            canvas.setConnectedComponentsAndProbability(cc, prob);
+        }).start());
 
         aboutMenuItem.addActionListener(e -> {
             try {
                 Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban"));
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(null, "浏览器打开失败，请手动访问 https://github.com/XieNaoban 。", "错误",JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(faceCanvas, "浏览器打开失败，请手动访问 https://github.com/XieNaoban 。", "错误",JOptionPane.ERROR_MESSAGE);
             }
         });
         this.setJMenuBar(menuBar);
@@ -325,7 +338,7 @@ public class GUI extends JFrame {
                 faceCanvas.setReverse(false);
                 if (e.getX() < 0 || e.getX() > faceCanvas.getWidth()) return;
                 if (e.getY() < 0 || e.getY() > faceCanvas.getHeight()) return;
-                initGame(row, col, mineCount, cheat);
+                initGame();
             }
             @Override public void mouseEntered(MouseEvent e) {}
             @Override public void mouseExited(MouseEvent e) {}
@@ -342,13 +355,26 @@ public class GUI extends JFrame {
         container.add(this.infoBorderCanvas);
     }
 
-    private void initGame(int row, int col, int mineCount, boolean cheat) {
-        this.row = row;
-        this.col = col;
-        this.mineCount = mineCount;
-        this.cheat = cheat;
-        this.game = new Game(this.row, this.col, this.mineCount, this.cheat, this.gameMode);
+    private void initGame() {
+        this.initGame(new Game(this.row, this.col, this.mineCount, this.cheat, this.gameRule));
+    }
+
+    private void initGame(int difficulty) {
+        this.initGame(new Game(difficulty, this.cheat, this.gameRule));
+    }
+
+    private void initGame(int row, int col, int mineCount) {
+        this.initGame(new Game(row, col, mineCount, this.cheat, this.gameRule));
+    }
+
+    private void initGame(Game newGame) {
+        this.game = newGame;
         this.game.setShowMine(this.showMine);
+        this.row = newGame.getRow();
+        this.col = newGame.getCol();
+        this.mineCount = newGame.getMineCount();
+//        this.cheat = newGame.getCheat();
+//        if (newGame.getGameRule() != Game.GAME_RULE_UNKNOWN) this.gameRule = newGame.getGameRule();
 
         this.setFrame();
 
@@ -359,7 +385,7 @@ public class GUI extends JFrame {
             this.canvas = new BoardCanvas();
             this.getContentPane().add(this.canvas, 1);
         }
-        else this.canvas.requestRepaintAll();
+        else this.canvas.requestRepaintAll(true);
     }
 
     private void setFrame() {
@@ -427,7 +453,7 @@ public class GUI extends JFrame {
             this.mouseX = this.mouseY = -1;
             this.mouseLeft = this.mouseRight = this.mouseBoth = false;
             this.font = new Font("Consolas",Font.BOLD, cellLength);
-            this.debugFont = new Font("等线",Font.BOLD, (int)(cellLength / 3));
+            this.debugFont = new Font("等线",Font.BOLD, cellLength / 3);
             this.highlightArr = null;
             this.step = 0;
             this.dontUpdate = false;
@@ -591,12 +617,13 @@ public class GUI extends JFrame {
         private int idxYToPosX(int y) { return y * cellLength; }
         private int idxXToPosY(int x) { return x * cellLength; }
 
-        public void requestRepaintAll() {
+        public void requestRepaintAll(boolean newGame) {
             this.setSize(col * cellLength, row * cellLength);
             this.font = new Font("Consolas",Font.BOLD, cellLength);
-            this.debugFont = new Font("等线",Font.BOLD, (int)(cellLength / 3));
+            this.debugFont = new Font("等线",Font.BOLD, cellLength / 3);
             this.buffer = null;
             this.lastPlayerBoard = null;
+            if (newGame) this.step = -1;
             this.repaint();
         }
 
@@ -683,9 +710,9 @@ public class GUI extends JFrame {
         public void mouseMoved(MouseEvent e) { }
     }
 
-    private class CellCanvas extends Canvas {
+    private static class CellCanvas extends Canvas {
         private boolean reverse;
-        private int margin;
+        private final int margin;
         private boolean yellowFace;
         private String emoji;
 
@@ -748,9 +775,9 @@ public class GUI extends JFrame {
         @Override public void paint(Graphics gCanvas) { this.drawCanvas(gCanvas); }
     }
 
-    private class TimeThread extends Thread {
+    private static class TimeThread extends Thread {
         private Date startTime, currentTime;
-        private JLabel targetLabel;
+        private final JLabel targetLabel;
 
         TimeThread(JLabel label, long initTime) {
             this.targetLabel = label;

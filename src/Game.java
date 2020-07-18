@@ -21,9 +21,10 @@ public class Game {
     public static final int RED_MINE  = 113;
     public static final int GRAY_MINE = 114;
 
-    // 两种游戏规则 (WinXP: 第一步必不为雷; Win7: 第一步周围九格均必不为雷)
+    // 三种游戏规则 (WinXP: 第一步必不为雷; Win7: 第一步周围九格均必不为雷; Unknown: 无规则, 预设雷区)
     public static final int GAME_RULE_WIN_XP = 20011025;
     public static final int GAME_RULE_WIN_7  = 20091022;
+    public static final int GAME_RULE_UNKNOWN  = 20200101;
 
     // 游戏内部变量
     private int state;                              // 游戏状态 (胜/负/进行中)
@@ -32,7 +33,7 @@ public class Game {
     private int gameRule;                           // 游戏规则 (WinXP、Win7)
     private boolean[][] mineBoard;                  // 地雷视图 (true 为雷, false 非雷)
     private int[][] playerBoard, lastPlayerBoard;   // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
-    private int clearCellLeft;                      // 剩余的未知格子 (UNCHECKED 的格子)
+    private int clearCellLeft;                      // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
     private int mineLeft;                           // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
     private int step;                               // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
 
@@ -133,7 +134,7 @@ public class Game {
         for (boolean[] i : mineBoard) for (boolean j : i) {
             if (j) ++mineCount;
         }
-        this.initGame(mineBoard.length, mineBoard[0].length, mineCount, true, mineBoard, -1);
+        this.initGame(mineBoard.length, mineBoard[0].length, mineCount, true, mineBoard, GAME_RULE_UNKNOWN);
     }
 
     /**
@@ -417,8 +418,9 @@ public class Game {
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
     public int getMineLeft() { return this.mineLeft; }
-    public int getStep() {return this.step; }
-    public int getGameRule() {return this.gameRule; }
+    public int getStep() { return this.step; }
+    public int getGameRule() { return this.gameRule; }
+    public boolean getCheat() { return this.cheat; }
 
     public int getPlayerBoard(int x, int y) { return this.getPlayerBoard(x, y, false); }
     public int getPlayerBoard(int x, int y, boolean showMineIfAllowed) {

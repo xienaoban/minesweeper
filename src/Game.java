@@ -33,7 +33,7 @@ public class Game {
     private int gameRule;                           // 游戏规则 (WinXP、Win7)
     private boolean[][] mineBoard;                  // 地雷视图 (true 为雷, false 非雷)
     private int[][] playerBoard, lastPlayerBoard;   // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
-    private int clearCellLeft;                      // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
+    private int coveredCellLeft;                    // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
     private int mineLeft;                           // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
     private int step;                               // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
 
@@ -159,7 +159,7 @@ public class Game {
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j)
             this.playerBoard[i][j] = UNCHECKED;
         this.lastPlayerBoard = null;
-        this.clearCellLeft = this.row * this.col - this.mineCount;
+        this.coveredCellLeft = this.row * this.col - this.mineCount;
         this.mineLeft = this.mineCount;
         this.step = 0;
     }
@@ -242,9 +242,9 @@ public class Game {
         this.playerBoard = this.lastPlayerBoard;
         this.lastPlayerBoard = null;
         this.state = PROCESS;
-        this.clearCellLeft = this.row * this.col - this.mineCount;
+        this.coveredCellLeft = this.row * this.col - this.mineCount;
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
-            if (this.playerBoard[i][j] < 9) --this.clearCellLeft;
+            if (this.playerBoard[i][j] < 9) --this.coveredCellLeft;
         }
     }
 
@@ -274,7 +274,7 @@ public class Game {
             y = point.getValue();
             if (this.playerBoard[x][y] != UNCHECKED) continue;
             this.playerBoard[x][y] = this.calculateValue(x, y);
-            --this.clearCellLeft;
+            --this.coveredCellLeft;
             if (this.playerBoard[x][y] != 0) continue;
 
             for (Pair<Integer, Integer> p : this.getAround(x, y)) {
@@ -283,7 +283,7 @@ public class Game {
                 if (this.playerBoard[px][py] == UNCHECKED) queue.offer(new Pair<>(px, py));
             }
         }
-        if (this.clearCellLeft == 0) this.endAndPublishMineBoard(WIN);
+        if (this.coveredCellLeft == 0) this.endAndPublishMineBoard(WIN);
         return this.state;
     }
 
@@ -418,6 +418,7 @@ public class Game {
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
     public int getMineLeft() { return this.mineLeft; }
+    public int getCoveredCellLeft() { return this.coveredCellLeft; }
     public int getStep() { return this.step; }
     public int getGameRule() { return this.gameRule; }
     public boolean getCheat() { return this.cheat; }

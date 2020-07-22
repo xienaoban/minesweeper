@@ -418,7 +418,7 @@ public class Game {
     public int getCol() { return this.col; }
     public int getMineCount() { return this.mineCount; }
     public int getMineLeft() { return this.mineLeft; }
-    public int getCoveredCellLeft() { return this.coveredCellLeft; }
+    public int getUncheckedCellLeft() { return this.coveredCellLeft + this.mineLeft; }
     public int getStep() { return this.step; }
     public int getGameRule() { return this.gameRule; }
     public boolean getCheat() { return this.cheat; }

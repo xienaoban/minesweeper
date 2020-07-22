@@ -13,7 +13,7 @@ public class AI {
     public static final int CC_UNKNOWN = 0;
 
     /**
-     * 工具类, 无需实例化
+     * 工具类, 不允许实例化
      */
     private AI() {}
 
@@ -294,10 +294,8 @@ public class AI {
         }
         if (unknownCellCnt > 0) {
             double unknownCellProb = ((double) game.getMineLeft() - avgPermMineCnt) / (double) (unknownCellCnt);
-            if (unknownCellProb < 0) {
-                if (Math.abs(unknownCellProb) < 1e-5) unknownCellProb = 0.0;
-                else if (Math.abs(unknownCellProb - 1.0) < 1e-5) unknownCellProb = 1.0;
-            }
+            if (Math.abs(unknownCellProb) < 1e-5) unknownCellProb = 0.0;
+            else if (Math.abs(unknownCellProb - 1.0) < 1e-5) unknownCellProb = 1.0;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 if (ccGraph[i][j] == CC_UNKNOWN) {
                     if (game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION) {
@@ -421,25 +419,43 @@ public class AI {
         return res;
     }
 
+    /**
+     * 计算所有连通分量中各个格子有雷的精确概率 (但可能有一点点精度误差)
+     * @param game 一局游戏
+     * @param ccList 所有连通分量的列表
+     * @param ccPermList 所有连通分量所有可能性下, 有多少个情况格子为雷
+     * @param probGraph 一个空白数组, 用于返回每个格子的概率
+     * @return
+     */
     private static double calculateProbabilitiesOfAllConnectedComponents(Game game,
                                                                          List<List<Pair<Integer, Integer>>> ccList,
                                                                          List<Map<Integer, int[]>> ccPermList,
                                                                          double[][] probGraph) {
-        final int mineLeft = game.getMineLeft();
         double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
-        int maxPermMineCnt = 0; // 所有连通分量最多有多少个雷
+        int maxPermMineCnt = 0, minPermMineCnt = 0; // 所有连通分量最多/少有多少个雷
+        int allCcCellCnt = 0;
 
         // 将每个连通分量所有可能排列中最多的雷数相加, 计算 maxPermMineCnt
         for (Map<Integer, int[]> perm : ccPermList) {
-            int max = 0;
+            int max = 0, min = 0x7fffffff;
             for (int key : perm.keySet()) {
                 max = Math.max(max, key);
+                min = Math.min(min, key);
+            }
+            for (int[] value : perm.values()) {
+                allCcCellCnt += value.length - 1;
+                break;
             }
             maxPermMineCnt += max;
+            minPermMineCnt += min;
         }
 
-        // 如果 maxPermMineCnt 最多也比剩余雷数 mineLeft 少 (或相等), 则可以安心地独立计算每个连通分量的概率
-        if (maxPermMineCnt <= mineLeft) {
+        final int maxMineCnt = game.getMineLeft();
+        final int minMineCnt = maxMineCnt - game.getUncheckedCellLeft() + allCcCellCnt;
+
+        // 如果 maxPermMineCnt 最多也比剩余雷数 maxMineCnt 少 (或相等), 且 minPermMineCnt 最少也不会使得孤立的格子有雷概率大于 1,
+        // 则可以安心地独立计算每个连通分量的概率
+        if (maxPermMineCnt <= maxMineCnt && minPermMineCnt >= minMineCnt) {
             for (int index = 0; index < ccList.size(); ++index) {
                 List<Pair<Integer, Integer>> points = ccList.get(index);
                 Map<Integer, int[]> perm = ccPermList.get(index);
@@ -458,7 +474,7 @@ public class AI {
             return avgPermMineCnt;
         }
 
-        // 反之如果 maxPermMineCnt > mineLeft, 需要综合计算所有连通分量才能得出精确概率
+        // 反之如果 maxPermMineCnt > maxMineCnt 或 minPermMineCnt < minMineCnt, 需要综合计算所有连通分量才能得出精确概率
         // 以下算法计算: 当一个连通分量有 x 个雷时, 在全局中有多少组合包含了它
         Deque<Map<Integer, Integer>> stack = new ArrayDeque<>(ccPermList.size());
         Map<Integer, Integer> outOfRange = new HashMap<>();
@@ -467,25 +483,28 @@ public class AI {
         for (int i = 0; i < ccPermList.size(); ++i) {
             Map<Integer, Integer> pre = stack.getFirst();
             Map<Integer, int[]> toMerge = ccPermList.get(i);
-            Map<Integer, Integer> cur = mergeTwoPermutations(pre, toMerge, mineLeft, true);
+            Map<Integer, Integer> cur = mergeTwoPermutations(pre, toMerge, maxMineCnt, true);
             stack.addFirst(cur);
         }
-        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量 (要求组合中所有雷数 <= mineLeft)
-        for (int cnt : stack.removeFirst().values()) allPermCnt += cnt;
+        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量 (要求组合中所有雷数∈[minMineCnt, maxMineCnt])
+        for (Map.Entry<Integer, Integer> e : stack.removeFirst().entrySet()) {
+            if (e.getKey() >= minMineCnt) allPermCnt += e.getValue();
+        }
         Map<Integer, Integer> right = outOfRange;
         for (int i = ccPermList.size() - 1; i >= 0; --i) { // 遍历每个连通分量
             List<Pair<Integer, Integer>> ccPoints = ccList.get(i); // 该分量的所有格子坐标
             Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数 (key) 情况下的排列 (value)
 
             Map<Integer, Integer> left = stack.removeFirst();
-            // 除该连通分量之外, 其他所有连通分量有多少组合使雷数小于等于 minLeft (key 为雷数 (小于等于 minLeft), value 为组合总个数)
-            Map<Integer, Integer> exceptCur = mergeTwoPermutations(left, right, mineLeft, false);
-            right = mergeTwoPermutations(right, ccPerms, mineLeft, true);
+            // 除该连通分量之外, 其他所有连通分量有多少组合使雷数小于等于 maxMineCnt (key 为雷数 (小于等于 maxMineCnt), value 为组合总个数)
+            Map<Integer, Integer> exceptCur = mergeTwoPermutations(left, right, maxMineCnt, false);
+            right = mergeTwoPermutations(right, ccPerms, maxMineCnt, true);
 
             for (Map.Entry<Integer, int[]> cur :  ccPerms.entrySet()) { // 遍历该连通分量的所有可能雷数
-                int curPermCnt = 0; // 所有其他分量的可行组合中, 多少种加上当前雷数依然小于等于 mineLeft
+                int curPermCnt = 0; // 所有其他分量的可行组合中, 多少种加上当前雷数依然小于等于 maxMineCnt
                 for (Map.Entry<Integer, Integer> other : exceptCur.entrySet()) {
-                    if (other.getKey() + cur.getKey() <= mineLeft) {
+                    int mineCnt = other.getKey() + cur.getKey();
+                    if (mineCnt >= minMineCnt && mineCnt <= maxMineCnt) {
                         curPermCnt += other.getValue();
                     }
                 }
@@ -505,6 +524,17 @@ public class AI {
         return avgPermMineCnt;
     }
 
+    /**
+     * 综合考虑两个连通分量 (或包含多个分量的分量集合), 计算在不同雷数情况下有多少种可能性
+     * 对于一个分量 P, S_P 代表分量 P 可能的雷数的集合, 且当分量雷数为 i (∈S_P) 时有 N_P_i 种情况 (同时 i 必小于等于剩余总雷数).
+     * 则对于两个分量 (或分量集合) P1、P2, 雷数集合分别为 S1、S2, 当雷有 n 个时, 有 ΣN1_i * N2_j (i∈S1, j∈S2, i + j = n) 种情况.
+     * @param perm1 连通分量 1
+     * @param perm2 连通分量 2
+     * @param maxMine 最多有多少个雷 (一般为剩余雷数)
+     * @param objType 第二个参数 @perm2 的 value 的类型, 我这里用到了两种数据结构: 一种就是整形, 记录情况个数;
+     *                另一种是数组, 其最后一个元素记录了有多少种情况.
+     * @return 两个分量 (或分量集合) 综合考虑后, 不同雷数情况下有多少种情况
+     */
     private static Map<Integer, Integer> mergeTwoPermutations(Map<Integer, Integer> perm1, Map<Integer, ?> perm2,
                                                               int maxMine, boolean objType) {
         Map<Integer, Integer> res = new HashMap<>(32);

@@ -1,6 +1,7 @@
 import java.util.Scanner;
 
 public class Main {
+    private static final String VERSION = "0.6";
     private static final boolean T = true, F = false;
 
     // 能够导致 AI 遍历连通分量时卡死的典型案例
@@ -22,13 +23,18 @@ public class Main {
         if (args.length == 0 || args[0].equals("gui")) new GUI();
         else if (args[0].contains("t")) testAI(args);
         else if (args[0].contains("c")) CLI();
+        else if (args[0].contains("v")) {
+            System.out.println("Java 扫雷 | 作者: 蟹恼板 | 版本: " + VERSION);
+        }
         else if (args[0].contains("h")) {
-            System.out.println("参数 \t描述");
-            System.out.println("无   \tGUI 入口");
-            System.out.println("gui  \tGUI 入口");
-            System.out.println("cli  \tCLI 入口");
-            System.out.println("test \t测试 AI 胜率 (详情输入 test --help)");
-            System.out.println("help \t查看帮助");
+            System.out.println("参数    \t描述");
+            System.out.println("------- \t-------");
+            System.out.println("(无)    \tGUI 入口");
+            System.out.println("gui     \tGUI 入口");
+            System.out.println("cli     \tCLI 入口");
+            System.out.println("test    \t测试 AI 胜率 (详情输入 test --help)");
+            System.out.println("version \t查看版本");
+            System.out.println("help    \t查看帮助");
         }
         else System.out.println("参数错误. 输入 help 查看更多信息.");
     }
@@ -41,14 +47,18 @@ public class Main {
         Scanner sc = new Scanner(System.in);
         System.out.print("输入 行 列 雷数: ");
         Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
+        sc.nextLine();
         while (true) {
             System.out.print("输入操作: ");
-            String ops = sc.next();
-            char op = ops.length() == 1 ? ops.charAt(0) : 'h';
+            String[] opList = sc.nextLine().split(" ");
+            char op = (opList.length > 0 && opList[0].length() == 1) ? opList[0].charAt(0) : 'h';
             int x = -1, y = -1;
             if (op == 'l' || op == 'r' || op == 'c') {
-                x = sc.nextInt();
-                y = sc.nextInt();
+                if (opList.length == 3) {
+                    x = Integer.parseInt(opList[1]);
+                    y = Integer.parseInt(opList[2]);
+                }
+                else op = 'h';
             }
             int success;
             switch (op) {

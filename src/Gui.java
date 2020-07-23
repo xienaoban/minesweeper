@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class GUI extends JFrame {
+public class Gui extends JFrame {
 
     private static final String FACE_NORMAL = "\uD83D\uDE42";
     private static final String FACE_PRESS = "\uD83D\uDE2E";
@@ -33,7 +33,9 @@ public class GUI extends JFrame {
     private CellCanvas faceCanvas, mineLabelCanvas, timeLabelCanvas,
             boardBorderCanvas, infoBorderCanvas;
 
-    public GUI() {
+    private String lastMineBoardDirectory = ".";
+
+    public Gui() {
         this.setTitle("Minesweeper");
         this.setLayout(new BorderLayout());
         this.setResizable(false);
@@ -215,18 +217,19 @@ public class GUI extends JFrame {
         });
         customMineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_N, CTRL_MASK));
         customMineMenuItem.addActionListener(e -> {
-            JFileChooser jfc = new JFileChooser(".");
+            JFileChooser jfc = new JFileChooser(lastMineBoardDirectory);
             jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
             int openState = jfc.showDialog(faceCanvas, "选择");
             if (openState == JFileChooser.CANCEL_OPTION) return;
             File file = jfc.getSelectedFile();
+            lastMineBoardDirectory = file.getParent();
             try {
                 FileReader fileReader = new FileReader(file);
                 BufferedReader bufferedReader = new BufferedReader(fileReader);
                 List<String> lineList = new ArrayList<>();
                 String line = bufferedReader.readLine();
                 while (line != null && !line.equals("")) {
-                    lineList.add(line);
+                    lineList.add(line.replaceAll(" ", ""));
                     line = bufferedReader.readLine();
                 }
                 bufferedReader.close();

@@ -20,9 +20,9 @@ public class Main {
     private static Game game;
 
     public static void main(String[] args) {
-        if (args.length == 0 || args[0].equals("gui")) new GUI();
+        if (args.length == 0 || args[0].equals("gui")) new Gui();
         else if (args[0].contains("t")) testAI(args);
-        else if (args[0].contains("c")) CLI();
+        else if (args[0].contains("c")) cli();
         else if (args[0].contains("v")) {
             System.out.println("Java 扫雷 | 作者: 蟹恼板 | 版本: " + VERSION);
         }
@@ -43,7 +43,7 @@ public class Main {
      * CLI 扫雷入口
      * 没仔细做, 算是个对 Game 提供的 API 的简单应用展示
      */
-    private static void CLI() {
+    private static void cli() {
         Scanner sc = new Scanner(System.in);
         System.out.print("输入 行 列 雷数: ");
         Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());

@@ -531,7 +531,7 @@ public class AI {
      * @param perm1 连通分量 1
      * @param perm2 连通分量 2
      * @param maxMine 最多有多少个雷 (一般为剩余雷数)
-     * @param objType 第二个参数 @perm2 的 value 的类型, 我这里用到了两种数据结构: 一种就是整形, 记录情况个数;
+     * @param objType 第二个参数 perm2 的 value 的类型, 我这里用到了两种数据结构: 一种就是整形, 记录情况个数;
      *                另一种是数组, 其最后一个元素记录了有多少种情况.
      * @return 两个分量 (或分量集合) 综合考虑后, 不同雷数情况下有多少种情况
      */

@@ -1,5 +1,6 @@
 import javafx.util.Pair;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 public class AI {
@@ -12,10 +13,18 @@ public class AI {
     public static final int CC_VISITED = -233;
     public static final int CC_UNKNOWN = 0;
 
-    /**
-     * 工具类, 不允许实例化
-     */
-    private AI() {}
+    // 二维数组的 [n][m] 表示当 n 个未知格子有 m 个雷时, 有多少种可能的情况
+    // 用 long 可能会溢出, 但同时后面会用到浮点除法, 所以又不能用 BigInteger, 于是选用了 BigDecimal
+    private static final ArrayList<ArrayList<BigDecimal>> numOfCasesForGivenCellsAndMines;
+
+    static {
+        // 初始化 numOfCasesForGivenMinesAndCells
+        numOfCasesForGivenCellsAndMines = new ArrayList<>(18 * 32);
+        ArrayList<BigDecimal> zero = new ArrayList<>(1);
+        zero.add(new BigDecimal(1));
+        numOfCasesForGivenCellsAndMines.add(zero);
+        getNumOfCasesForGivenCellsAndMines(16 * 30, 99);
+    }
 
     /**
      * 仅通过检测周围8格, 确定已知数字的格子周围剩下的未知格子是否全部为雷
@@ -184,6 +193,73 @@ public class AI {
     }
 
     /**
+     * 进阶扫雷 AI, 将所有概率为 100% 或 0% 的格子扫掉
+     * @param game 一局游戏
+     * @return 最后一次计算得概率后没有利用, 将其返回以重复利用
+     */
+    public static double[][] sweepAllAdvanced(Game game) {
+        boolean loop = true;
+        double[][] prob = null;
+        while (loop && game.getGameState() == Game.PROCESS) {
+            loop = false;
+            sweepAllBasic(game);
+            if (game.getGameState() != Game.PROCESS) break;
+            prob = calculateAllProbabilities(game);
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
+                // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
+                // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
+                if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
+                    game.uncover(i, j);
+                    loop = true;
+                }
+            }
+        }
+        return prob;
+    }
+
+    /**
+     * 完整地玩一局扫雷
+     * 猜雷就是在本方法实现的
+     * @param game 一局游戏
+     */
+    public static void sweepToEnd(Game game) {
+        if (game.getStep() == 0) {
+            // Win7 的规则下第一步点击距离角落两格的点最好
+            if (game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
+            else game.uncover(0, 0);
+        }
+        while (game.getGameState() == Game.PROCESS) {
+            double[][] prob = sweepAllAdvanced(game);
+            if (game.getGameState() != Game.PROCESS) break;
+            if (prob == null) prob = calculateAllProbabilities(game);
+            int maxX = -1, maxY = -1, corner = -1, intensity = -1;
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                int cellState = game.getPlayerBoard(i, j);
+                if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
+                if (maxX != -1 && prob[i][j] > prob[maxX][maxY]) continue;
+                boolean newMax = false;
+                int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
+                if (i == 0 || i == game.getRow() - 1) ++cor;
+                if (j == 0 || j == game.getCol() - 1) ++cor;
+                if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
+                    // 同概率的话在角落的格子优先探测, 可以将概率从 29% 提升到 33%.
+                    // 或者当两者都在 (或都不在) 角落时, 选择周围 24 格数字格子更多的.
+                    if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
+                }
+                else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
+                if (!newMax) continue;
+                maxX = i;
+                maxY = j;
+                corner = cor;
+                intensity = in;
+            }
+            // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
+            game.uncover(maxX, maxY);
+        }
+    }
+
+    /**
      * 检查已知是数字的一个格子, 判断对其周围是否是雷的判定是否合法
      * @param game 一局游戏
      * @param board 棋局. 标记为 MINE 或 FLAG 说明判定为雷; 标记为 NOT_MINE 说明判定为非雷
@@ -215,6 +291,21 @@ public class AI {
         }
         if (uncheckedCnt == 0) return mineCnt == board[x][y];
         return mineCnt <= board[x][y] && mineCnt + uncheckedCnt >= board[x][y];
+    }
+
+    public static BigDecimal getNumOfCasesForGivenCellsAndMines(int cells, int mines) {
+        ArrayList<ArrayList<BigDecimal>> _arr = numOfCasesForGivenCellsAndMines;
+        for (int i = _arr.size(); i <= cells; ++i) {
+            ArrayList<BigDecimal> arrCur = new ArrayList<>(i + 1);
+            ArrayList<BigDecimal> arrPre = _arr.get(i - 1);
+            _arr.add(arrCur);
+            arrCur.add(arrPre.get(0));
+            for (int j = 1; j < i ; ++j) {
+                arrCur.add(arrPre.get(j - 1).add(arrPre.get(j)));
+            }
+            arrCur.add(arrPre.get(i - 1));
+        }
+        return mines >= 0 && mines <= cells ? _arr.get(cells).get(mines) : new BigDecimal(0);
     }
 
     /**
@@ -305,75 +396,8 @@ public class AI {
                 }
             }
         }
-//        printProbability(prob);
+//        printProbability(probGraph);
         return probGraph;
-    }
-
-    /**
-     * 进阶扫雷 AI, 将所有概率为 100% 或 0% 的格子扫掉
-     * @param game 一局游戏
-     * @return 最后一次计算得概率后没有利用, 将其返回以重复利用
-     */
-    public static double[][] sweepAllAdvanced(Game game) {
-        boolean loop = true;
-        double[][] prob = null;
-        while (loop && game.getGameState() == Game.PROCESS) {
-            loop = false;
-            sweepAllBasic(game);
-            if (game.getGameState() != Game.PROCESS) break;
-            prob = calculateAllProbabilities(game);
-            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
-                // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
-                // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
-                if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
-                    game.uncover(i, j);
-                    loop = true;
-                }
-            }
-        }
-        return prob;
-    }
-
-    /**
-     * 完整地玩一局扫雷
-     * 猜雷就是在本方法实现的
-     * @param game 一局游戏
-     */
-    public static void sweepToEnd(Game game) {
-        if (game.getStep() == 0) {
-            // Win7 的规则下第一步点击距离角落两格的点最好
-            if (game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
-            else game.uncover(0, 0);
-        }
-        while (game.getGameState() == Game.PROCESS) {
-            double[][] prob = sweepAllAdvanced(game);
-            if (game.getGameState() != Game.PROCESS) break;
-            if (prob == null) prob = calculateAllProbabilities(game);
-            int maxX = -1, maxY = -1, corner = -1, intensity = -1;
-            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-                int cellState = game.getPlayerBoard(i, j);
-                if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
-                if (maxX != -1 && prob[i][j] > prob[maxX][maxY]) continue;
-                boolean newMax = false;
-                int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
-                if (i == 0 || i == game.getRow() - 1) ++cor;
-                if (j == 0 || j == game.getCol() - 1) ++cor;
-                if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
-                    // 同概率的话在角落的格子优先探测, 可以将概率从 29% 提升到 33%.
-                    // 或者当两者都在 (或都不在) 角落时, 选择周围 24 格数字格子更多的.
-                    if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
-                }
-                else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
-                if (!newMax) continue;
-                maxX = i;
-                maxY = j;
-                corner = cor;
-                intensity = in;
-            }
-            // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
-            game.uncover(maxX, maxY);
-        }
     }
 
     /**
@@ -425,73 +449,42 @@ public class AI {
      * @param ccList 所有连通分量的列表
      * @param ccPermList 所有连通分量所有可能性下, 有多少个情况格子为雷
      * @param probGraph 一个空白数组, 用于返回每个格子的概率
-     * @return
+     * @return 所有分量平均雷数
      */
     private static double calculateProbabilitiesOfAllConnectedComponents(Game game,
                                                                          List<List<Pair<Integer, Integer>>> ccList,
                                                                          List<Map<Integer, int[]>> ccPermList,
                                                                          double[][] probGraph) {
-        double avgPermMineCnt = 0; // 所有连通分量的排列中雷的平均数
-        int maxPermMineCnt = 0, minPermMineCnt = 0; // 所有连通分量最多/少有多少个雷
-        int allCcCellCnt = 0;
-
-        // 将每个连通分量所有可能排列中最多的雷数相加, 计算 maxPermMineCnt
-        for (Map<Integer, int[]> perm : ccPermList) {
-            int max = 0, min = 0x7fffffff;
-            for (int key : perm.keySet()) {
-                max = Math.max(max, key);
-                min = Math.min(min, key);
-            }
-            for (int[] value : perm.values()) {
-                allCcCellCnt += value.length - 1;
-                break;
-            }
-            maxPermMineCnt += max;
-            minPermMineCnt += min;
+        final int unchecked = game.getUncheckedCellLeft();
+        int notInCC = unchecked;
+        for (List<Pair<Integer, Integer>> cc : ccList) {
+            notInCC -= cc.size();
         }
-
         final int maxMineCnt = game.getMineLeft();
-        final int minMineCnt = maxMineCnt - game.getUncheckedCellLeft() + allCcCellCnt;
+        final int minMineCnt = maxMineCnt - notInCC;
+        double avgPermMineCnt = 0;
 
-        // 如果 maxPermMineCnt 最多也比剩余雷数 maxMineCnt 少 (或相等), 且 minPermMineCnt 最少也不会使得孤立的格子有雷概率大于 1,
-        // 则可以安心地独立计算每个连通分量的概率
-        if (maxPermMineCnt <= maxMineCnt && minPermMineCnt >= minMineCnt) {
-            for (int index = 0; index < ccList.size(); ++index) {
-                List<Pair<Integer, Integer>> points = ccList.get(index);
-                Map<Integer, int[]> perm = ccPermList.get(index);
-                int[] allCounts = new int[points.size() + 1];
-                for (int[] value : perm.values()) {
-                    for (int i = 0; i < allCounts.length; ++i) {
-                        allCounts[i] += value[i];
-                    }
-                }
-                for (int i = 0; i < points.size(); ++i) {
-                    int px = points.get(i).getKey(), py = points.get(i).getValue();
-                    probGraph[px][py] = (double) allCounts[i] / (double) allCounts[points.size()];
-                    avgPermMineCnt += probGraph[px][py];
-                }
-            }
-            return avgPermMineCnt;
-        }
-
-        // 反之如果 maxPermMineCnt > maxMineCnt 或 minPermMineCnt < minMineCnt, 需要综合计算所有连通分量才能得出精确概率
-        // 以下算法计算: 当一个连通分量有 x 个雷时, 在全局中有多少组合包含了它
+        // stack 按顺序存放: 综合前 0 ~ n-1 个分量, 计算不同雷数时这 n 个分量共有多少种组合情况 (该栈主要是为了遍历时不重复计算)
         Deque<Map<Integer, Integer>> stack = new ArrayDeque<>(ccPermList.size());
         Map<Integer, Integer> outOfRange = new HashMap<>();
-        outOfRange.put(0, 1);
+        outOfRange.put(0, 1); // 0 个分量时有一种情况
         stack.addFirst(outOfRange);
-        for (int i = 0; i < ccPermList.size(); ++i) {
+        for (Map<Integer, int[]> toMerge : ccPermList) {
             Map<Integer, Integer> pre = stack.getFirst();
-            Map<Integer, int[]> toMerge = ccPermList.get(i);
             Map<Integer, Integer> cur = mergeTwoPermutations(pre, toMerge, maxMineCnt, true);
             stack.addFirst(cur);
         }
-        int allPermCnt = 0; // 所有连通分量的所有可能组合的数量 (要求组合中所有雷数∈[minMineCnt, maxMineCnt])
+
+        // 计算所有可能组合的数量 (刚好栈头元素 (所有分量的组合情况) 之后用不到, 于是直接 pop 了)
+        BigDecimal allPermCnt = new BigDecimal(0);
         for (Map.Entry<Integer, Integer> e : stack.removeFirst().entrySet()) {
-            if (e.getKey() >= minMineCnt) allPermCnt += e.getValue();
+            allPermCnt = allPermCnt.add(new BigDecimal(e.getValue())
+                    .multiply(getNumOfCasesForGivenCellsAndMines(notInCC, maxMineCnt - e.getKey())));
         }
-        Map<Integer, Integer> right = outOfRange;
-        for (int i = ccPermList.size() - 1; i >= 0; --i) { // 遍历每个连通分量
+
+        // 计算在不同雷数下的所有可能组合, 并与 allPermCnt 得到概率
+        Map<Integer, Integer> right = outOfRange; // 与 stack 的 top 对应 (即下面代码里的 left 变量)
+        for (int i = ccList.size() - 1; i >= 0; --i) { // 遍历每个连通分量 (遍历方向与 stack 相反)
             List<Pair<Integer, Integer>> ccPoints = ccList.get(i); // 该分量的所有格子坐标
             Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数 (key) 情况下的排列 (value)
 
@@ -501,20 +494,17 @@ public class AI {
             right = mergeTwoPermutations(right, ccPerms, maxMineCnt, true);
 
             for (Map.Entry<Integer, int[]> cur :  ccPerms.entrySet()) { // 遍历该连通分量的所有可能雷数
-                int curPermCnt = 0; // 所有其他分量的可行组合中, 多少种加上当前雷数依然小于等于 maxMineCnt
+                BigDecimal curPermCnt = new BigDecimal(0); // (乘上每个格子为雷的情况个数后为) 当前情形下的可能情况
                 for (Map.Entry<Integer, Integer> other : exceptCur.entrySet()) {
                     int mineCnt = other.getKey() + cur.getKey();
-                    if (mineCnt >= minMineCnt && mineCnt <= maxMineCnt) {
-                        curPermCnt += other.getValue();
-                    }
+                    if (mineCnt < minMineCnt || mineCnt > maxMineCnt) continue;
+                    curPermCnt = curPermCnt.add(new BigDecimal(other.getValue())
+                            .multiply(getNumOfCasesForGivenCellsAndMines(notInCC, maxMineCnt - mineCnt)));
                 }
                 for (int j = 0; j < ccPoints.size(); ++j) {
                     int px = ccPoints.get(j).getKey(), py = ccPoints.get(j).getValue();
-                    // 当前连通分量在有这些个雷时, 当前格子有雷的概率 prob =
-                    // 当前雷数下格子有雷的次数/当前雷数下排列次数*当前雷数全局出现总次数/所有可行排列总数.
-                    // 其中, 当前雷数全局出现总次数=当前雷数下排列次数*curPermCnt.
-                    // 于是综合如下
-                    double prob = (double) cur.getValue()[j] * curPermCnt / allPermCnt;
+                    double prob = new BigDecimal(cur.getValue()[j]).multiply(curPermCnt)
+                            .divide(allPermCnt, 6, BigDecimal.ROUND_HALF_UP).doubleValue();
                     probGraph[px][py] += prob;
                     avgPermMineCnt += prob;
                 }
@@ -589,6 +579,13 @@ public class AI {
         }
         return true;
     }
+
+    // 以下定义了一些杂七杂八的东西
+
+    /**
+     * 工具类, 不允许实例化
+     */
+    private AI() {}
 
     /**
      * 控制台输出连通分量视图

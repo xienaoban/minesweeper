@@ -270,7 +270,7 @@ public class AI {
     public static boolean isUncoveredCellLegal(Game game, int[][] board, int x, int y) {
         if (board[x][y] > 8) return false;
         List<Pair<Integer, Integer>> list = game.getAround(x, y);
-        int mineCnt = 0, notMineCnt = 0, uncheckedCnt = 0;
+        int mineCnt = 0, uncheckedCnt = 0;
         for (Pair<Integer, Integer> p : list) {
             switch (board[p.getKey()][p.getValue()]) {
                 case Game.FLAG:
@@ -278,9 +278,6 @@ public class AI {
                 case Game.RED_MINE:
                 case Game.GRAY_MINE:
                     ++mineCnt;
-                    break;
-                case Game.NOT_MINE:
-                    ++notMineCnt;
                     break;
                 case Game.UNCHECKED:
                 case Game.QUESTION:
@@ -455,8 +452,7 @@ public class AI {
                                                                          List<List<Pair<Integer, Integer>>> ccList,
                                                                          List<Map<Integer, int[]>> ccPermList,
                                                                          double[][] probGraph) {
-        final int unchecked = game.getUncheckedCellLeft();
-        int notInCC = unchecked;
+        int notInCC = game.getUncheckedCellLeft();
         for (List<Pair<Integer, Integer>> cc : ccList) {
             notInCC -= cc.size();
         }

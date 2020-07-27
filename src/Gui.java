@@ -65,6 +65,7 @@ public class Gui extends JFrame {
         JCheckBoxMenuItem customMenuItem        = new JCheckBoxMenuItem("自定义", false);
         JCheckBoxMenuItem gameRuleWinXpMenuItem = new JCheckBoxMenuItem("规则 Win XP", true);
         JCheckBoxMenuItem gameRuleWin7MenuItem  = new JCheckBoxMenuItem("规则 Win 7", false);
+        JCheckBoxMenuItem allowQuestionMenuItem = new JCheckBoxMenuItem("问号标记", Game.getAllowQuestionMark());
         JMenuItem         cellLengthMenuItem    = new JMenuItem("格子大小");
         gameMenu.add(newGameMenuItem);
         gameMenu.addSeparator();
@@ -76,6 +77,7 @@ public class Gui extends JFrame {
         gameMenu.add(gameRuleWinXpMenuItem);
         gameMenu.add(gameRuleWin7MenuItem);
         gameMenu.addSeparator();
+        gameMenu.add(allowQuestionMenuItem);
         gameMenu.add(cellLengthMenuItem);
 
         JCheckBoxMenuItem cheatMenuItem         = new JCheckBoxMenuItem("启用作弊");
@@ -179,6 +181,9 @@ public class Gui extends JFrame {
             gameRuleWinXpMenuItem.setSelected(false);
             gameRuleWin7MenuItem.setSelected(true);
             if (game.getStep() == 0) initGame();
+        });
+        allowQuestionMenuItem.addActionListener(e -> {
+            Game.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
         });
         cellLengthMenuItem.addActionListener(e -> {
             try {
@@ -497,7 +502,7 @@ public class Gui extends JFrame {
             if (this.mouseLeft && this.mouseRight) {
                 around = game.getAround(this.mouseX, this.mouseY);
             }
-            if ((this.mouseLeft || this.mouseRight) && game.isPointInRange(this.mouseX, this.mouseY)) {
+            if ((this.mouseLeft) && game.isPointInRange(this.mouseX, this.mouseY)) {
                 around.add(new Pair<>(this.mouseX, this.mouseY));
             }
             for (Pair<Integer, Integer> xy : around) {

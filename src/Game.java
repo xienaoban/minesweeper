@@ -27,15 +27,16 @@ public class Game {
     public static final int GAME_RULE_UNKNOWN  = 20200101;
 
     // 游戏内部变量
-    private int state;                              // 游戏状态 (胜/负/进行中)
-    private boolean cheat, showMine;                // 作弊与否、是否显示地雷 (需要作弊)
-    private int row, col, mineCount;                // 行、列数、地雷总数
-    private int gameRule;                           // 游戏规则 (WinXP、Win7)
-    private boolean[][] mineBoard;                  // 地雷视图 (true 为雷, false 非雷)
-    private int[][] playerBoard, lastPlayerBoard;   // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
-    private int coveredCellLeft;                    // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
-    private int mineLeft;                           // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
-    private int step;                               // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
+    private int state;                                  // 游戏状态 (胜/负/进行中)
+    private boolean cheat, showMine;                    // 作弊与否、是否显示地雷 (需要作弊)
+    private int row, col, mineCount;                    // 行、列数、地雷总数
+    private int gameRule;                               // 游戏规则 (WinXP、Win7)
+    private boolean[][] mineBoard;                      // 地雷视图 (true 为雷, false 非雷)
+    private int[][] playerBoard, lastPlayerBoard;       // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
+    private int coveredCellLeft;                        // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
+    private int mineLeft;                               // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
+    private int step;                                   // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
+    private static boolean allowQuestionMark = true;    // 右键时是否支持标记问号
 
     /**
      * 最简洁的构造函数, 从预设难度创建游戏. 默认作弊关闭、WinXP 版本规则
@@ -406,7 +407,7 @@ public class Game {
         if (this.state != PROCESS) return this.state;
         switch (this.playerBoard[x][y]) {
             case UNCHECKED: this.setFlag(x, y); break;
-            case FLAG: this.unsetFlag(x, y); this.setQuestion(x, y); break;
+            case FLAG: this.unsetFlag(x, y); if (allowQuestionMark) this.setQuestion(x, y); break;
             case QUESTION: this.unsetQuestion(x, y); break;
         }
         return this.state;
@@ -506,6 +507,9 @@ public class Game {
      */
     public void setShowMine(boolean flag) { if (cheat) this.showMine = flag; }
     public boolean getShowMine() { return this.showMine; }
+
+    public static void setAllowQuestionMark(boolean flag) { allowQuestionMark = flag; }
+    public static boolean getAllowQuestionMark() { return allowQuestionMark; }
 
     /**
      * 控制台输出地雷视图

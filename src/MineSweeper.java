@@ -1,7 +1,7 @@
 import javafx.util.Pair;
 import java.util.*;
 
-public class Game {
+public class MineSweeper {
     // 游戏状态
     public static final int PROCESS = 0;
     public static final int WIN     = 1;
@@ -27,22 +27,24 @@ public class Game {
     public static final int GAME_RULE_UNKNOWN  = 20200101;
 
     // 游戏内部变量
-    private int state;                                  // 游戏状态 (胜/负/进行中)
-    private boolean cheat, showMine;                    // 作弊与否、是否显示地雷 (需要作弊)
-    private int row, col, mineCount;                    // 行、列数、地雷总数
-    private int gameRule;                               // 游戏规则 (WinXP、Win7)
-    private boolean[][] mineBoard;                      // 地雷视图 (true 为雷, false 非雷)
-    private int[][] playerBoard, lastPlayerBoard;       // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
-    private int coveredCellLeft;                        // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
-    private int mineLeft;                               // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
-    private int step;                                   // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
-    private static boolean allowQuestionMark = true;    // 右键时是否支持标记问号
+    protected int state;                                  // 游戏状态 (胜/负/进行中)
+    protected boolean cheat, showMine;                    // 作弊与否、是否显示地雷 (需要作弊)
+    protected int row, col, mineCount;                    // 行、列数、地雷总数
+    protected int gameRule;                               // 游戏规则 (WinXP、Win7)
+    protected boolean[][] mineBoard;                      // 地雷视图 (true 为雷, false 非雷)
+    protected int[][] playerBoard, lastPlayerBoard;       // 当前的玩家视图, 上一步的玩家视图 (用于撤销)
+    protected int coveredCellLeft;                        // 剩余的非雷未知格子 (UNCHECKED 且不是雷的格子)
+    protected int mineLeft;                               // 剩余的雷 (= 地雷总数 - 小旗数, 所以可为负数)
+    protected int step;                                   // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
+    protected static boolean allowQuestionMark = true;    // 右键时是否支持标记问号
+
+    protected MineSweeper() {}
 
     /**
      * 最简洁的构造函数, 从预设难度创建游戏. 默认作弊关闭、WinXP 版本规则
      * @param difficulty 难度 (三个宏): DIFFICULTY_BEGINNER, DIFFICULTY_INTERMEDIATE, DIFFICULTY_EXPERT
      */
-    public Game(int difficulty) {
+    public MineSweeper(int difficulty) {
         this(difficulty, false, GAME_RULE_WIN_XP);
     }
 
@@ -51,7 +53,7 @@ public class Game {
      * @param difficulty 难度 (三个宏): DIFFICULTY_BEGINNER, DIFFICULTY_INTERMEDIATE, DIFFICULTY_EXPERT
      * @param cheat 作弊与否
      */
-    public Game(int difficulty, boolean cheat) {
+    public MineSweeper(int difficulty, boolean cheat) {
         this(difficulty, cheat, GAME_RULE_WIN_XP);
     }
 
@@ -60,7 +62,7 @@ public class Game {
      * @param difficulty 难度 (三个宏): DIFFICULTY_BEGINNER, DIFFICULTY_INTERMEDIATE, DIFFICULTY_EXPERT
      * @param gameRule 游戏规则 (两个宏): GAME_RULE_WIN_XP、GAME_RULE_WIN_7
      */
-    public Game(int difficulty, int gameRule) {
+    public MineSweeper(int difficulty, int gameRule) {
         this(difficulty, false, gameRule);
     }
 
@@ -70,7 +72,7 @@ public class Game {
      * @param cheat 作弊与否
      * @param gameRule 游戏规则 (两个宏): GAME_RULE_WIN_XP、GAME_RULE_WIN_7
      */
-    public Game(int difficulty, boolean cheat, int gameRule) {
+    public MineSweeper(int difficulty, boolean cheat, int gameRule) {
         switch (difficulty) {
             case DIFFICULTY_BEGINNER:
                 this.initGame(9, 9, 10, cheat, null, gameRule); break;
@@ -87,7 +89,7 @@ public class Game {
      * @param col 列数
      * @param mineCount 雷数
      */
-    public Game(int row, int col, int mineCount) {
+    public MineSweeper(int row, int col, int mineCount) {
         this(row, col, mineCount, false, GAME_RULE_WIN_XP);
     }
 
@@ -98,7 +100,7 @@ public class Game {
      * @param mineCount 雷数
      * @param gameRule 游戏规则版本
      */
-    public Game(int row, int col, int mineCount, int gameRule) {
+    public MineSweeper(int row, int col, int mineCount, int gameRule) {
         this(row, col, mineCount, false, gameRule);
     }
 
@@ -109,7 +111,7 @@ public class Game {
      * @param mineCount 雷数
      * @param cheat 作弊与否
      */
-    public Game(int row, int col, int mineCount, boolean cheat) {
+    public MineSweeper(int row, int col, int mineCount, boolean cheat) {
         this(row, col, mineCount, cheat, GAME_RULE_WIN_XP);
     }
 
@@ -121,7 +123,7 @@ public class Game {
      * @param cheat 作弊与否
      * @param gameRule 游戏规则版本
      */
-    public Game(int row, int col, int mineCount, boolean cheat, int gameRule) {
+    public MineSweeper(int row, int col, int mineCount, boolean cheat, int gameRule) {
         this.initGame(row, col, mineCount, cheat, null, gameRule);
     }
 
@@ -130,7 +132,7 @@ public class Game {
      * 地雷视图包含了行、列、雷信息, 无需指定. 游戏规则在此无效, 第一步就可能触雷.
      * @param mineBoard 地雷视图
      */
-    public Game(boolean[][] mineBoard) {
+    public MineSweeper(boolean[][] mineBoard) {
         int mineCount = 0;
         for (boolean[] i : mineBoard) for (boolean j : i) {
             if (j) ++mineCount;
@@ -147,7 +149,7 @@ public class Game {
      * @param mineBoard 地雷视图
      * @param gameRule 游戏规则版本
      */
-    private void initGame(int row, int col, int mineCount, boolean cheat, boolean[][] mineBoard, int gameRule) {
+    protected void initGame(int row, int col, int mineCount, boolean cheat, boolean[][] mineBoard, int gameRule) {
         this.state = PROCESS;
         this.row = row;
         this.col = col;
@@ -250,12 +252,12 @@ public class Game {
     }
 
     /**
-     * 揭开某个未知的格子 (即鼠标左键)
+     * 挖掘某个未知的格子 (即鼠标左键)
      * @param x 目标格子的 x 坐标
      * @param y 目标格子的 y 坐标
      * @return 执行该操作后的游戏状态
      */
-    public int uncover(int x, int y) {
+    public int dig(int x, int y) {
         this.pointRangeCheck(x, y);
         if (this.state != PROCESS || this.playerBoard[x][y] != UNCHECKED) return this.state;
         this.recordLastPlayerBoard();
@@ -392,7 +394,7 @@ public class Game {
         }
         if (fail) return this.endAndPublishMineBoard(LOSE);
 
-        for (Pair<Integer, Integer> point : around) this.uncover(point.getKey(), point.getValue());
+        for (Pair<Integer, Integer> point : around) this.dig(point.getKey(), point.getValue());
         return this.state;
     }
 
@@ -402,7 +404,7 @@ public class Game {
      * @param y 目标格子的 y 坐标
      * @return 执行该操作后的游戏状态
      */
-    public int cycFlagAndQuestion(int x, int y) {
+    public int mark(int x, int y) {
         this.pointRangeCheck(x, y);
         if (this.state != PROCESS) return this.state;
         switch (this.playerBoard[x][y]) {

@@ -22,7 +22,7 @@ public class Gui extends JFrame {
 
     private int row, col, mineCount, gameRule;
     private boolean cheat, showMine;
-    private Game game;
+    private MineSweeper game;
 
     private int cellLength;
     private BoardCanvas canvas;
@@ -46,8 +46,8 @@ public class Gui extends JFrame {
         this.showMine = false;
         this.initMenu();
         this.cheat = false;
-        this.gameRule = Game.GAME_RULE_WIN_XP;
-        this.initGame(Game.DIFFICULTY_BEGINNER);
+        this.gameRule = MineSweeper.GAME_RULE_WIN_XP;
+        this.initGame(MineSweeper.DIFFICULTY_BEGINNER);
         this.setVisible(true);
     }
 
@@ -65,7 +65,7 @@ public class Gui extends JFrame {
         JCheckBoxMenuItem customMenuItem        = new JCheckBoxMenuItem("自定义", false);
         JCheckBoxMenuItem gameRuleWinXpMenuItem = new JCheckBoxMenuItem("规则 Win XP", true);
         JCheckBoxMenuItem gameRuleWin7MenuItem  = new JCheckBoxMenuItem("规则 Win 7", false);
-        JCheckBoxMenuItem allowQuestionMenuItem = new JCheckBoxMenuItem("问号标记", Game.getAllowQuestionMark());
+        JCheckBoxMenuItem allowQuestionMenuItem = new JCheckBoxMenuItem("问号标记", MineSweeper.getAllowQuestionMark());
         JMenuItem         cellLengthMenuItem    = new JMenuItem("格子大小");
         gameMenu.add(newGameMenuItem);
         gameMenu.addSeparator();
@@ -122,7 +122,7 @@ public class Gui extends JFrame {
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
-            initGame(Game.DIFFICULTY_BEGINNER);
+            initGame(MineSweeper.DIFFICULTY_BEGINNER);
         });
         intermediateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_2, CTRL_MASK));
         intermediateMenuItem.addActionListener(e -> {
@@ -130,7 +130,7 @@ public class Gui extends JFrame {
             intermediateMenuItem.setSelected(true);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
-            initGame(Game.DIFFICULTY_INTERMEDIATE);
+            initGame(MineSweeper.DIFFICULTY_INTERMEDIATE);
         });
         advancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_3, CTRL_MASK));
         advancedMenuItem.addActionListener(e -> {
@@ -138,7 +138,7 @@ public class Gui extends JFrame {
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(true);
             customMenuItem.setSelected(false);
-            initGame(Game.DIFFICULTY_EXPERT);
+            initGame(MineSweeper.DIFFICULTY_EXPERT);
         });
         customMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_4, CTRL_MASK));
         customMenuItem.addActionListener(e -> {
@@ -149,7 +149,7 @@ public class Gui extends JFrame {
                 int r = Integer.parseInt(arr[0]);
                 int c = Integer.parseInt(arr[1]);
                 int m = Integer.parseInt(arr[2]);
-                if (r < 1 || c < 1 || m < 0 || m > r * c - (gameRule == Game.GAME_RULE_WIN_XP ? 1 : 9)) {
+                if (r < 1 || c < 1 || m < 0 || m > r * c - (gameRule == MineSweeper.GAME_RULE_WIN_XP ? 1 : 9)) {
                     throw new Exception("数字范围错误，棋盘上容纳不下这么多雷。");
                 }
                 beginnerMenuItem.setSelected(false);
@@ -165,7 +165,7 @@ public class Gui extends JFrame {
             }
         });
         gameRuleWinXpMenuItem.addActionListener(e -> {
-            gameRule = Game.GAME_RULE_WIN_XP;
+            gameRule = MineSweeper.GAME_RULE_WIN_XP;
             gameRuleWinXpMenuItem.setSelected(true);
             gameRuleWin7MenuItem.setSelected(false);
             if (game.getStep() == 0) initGame();
@@ -177,13 +177,13 @@ public class Gui extends JFrame {
                         "数字有误", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            gameRule = Game.GAME_RULE_WIN_7;
+            gameRule = MineSweeper.GAME_RULE_WIN_7;
             gameRuleWinXpMenuItem.setSelected(false);
             gameRuleWin7MenuItem.setSelected(true);
             if (game.getStep() == 0) initGame();
         });
         allowQuestionMenuItem.addActionListener(e -> {
-            Game.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
+            MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
         });
         cellLengthMenuItem.addActionListener(e -> {
             try {
@@ -250,7 +250,7 @@ public class Gui extends JFrame {
                 intermediateMenuItem.setSelected(false);
                 advancedMenuItem.setSelected(false);
                 customMenuItem.setSelected(true);
-                initGame(new Game(mineBoard));
+                initGame(new MineSweeper(mineBoard));
             } catch (Exception exception) {
                 JOptionPane.showMessageDialog(faceCanvas, exception.getMessage(),
                         "文件读取错误", JOptionPane.ERROR_MESSAGE);
@@ -259,8 +259,8 @@ public class Gui extends JFrame {
 
         checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Q, CTRL_MASK));
         checkBasicMenuItem.addActionListener(e -> new Thread(() -> {
-            int[] res = AI.checkAllBasic(game);
-            if (res[0] == AI.UNKNOWN) return;
+            int[] res = AutoSweeper.checkAllBasic(game);
+            if (res[0] == AutoSweeper.UNKNOWN) return;
             int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
             int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
             try {
@@ -277,7 +277,7 @@ public class Gui extends JFrame {
         sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
         sweepBasicMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
-            AI.sweepAllBasic(game);
+            AutoSweeper.sweepAllBasic(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
         }).start());
@@ -285,7 +285,7 @@ public class Gui extends JFrame {
         sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
         sweepAdvancedMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
-            AI.sweepAllAdvanced(game);
+            AutoSweeper.sweepAllAdvanced(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
         }).start());
@@ -293,15 +293,15 @@ public class Gui extends JFrame {
         sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
         sweepToEndMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
-            AI.sweepToEnd(game);
+            AutoSweeper.sweepToEnd(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
         }).start());
 
         aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
         aiDebugMenuItem.addActionListener(e -> new Thread(() -> {
-            int[][] cc = AI.findAllConnectedComponents(game).getValue();
-            double[][] prob = AI.calculateAllProbabilities(game);
+            int[][] cc = AutoSweeper.findAllConnectedComponents(game).getValue();
+            double[][] prob = AutoSweeper.calculateAllProbabilities(game);
             canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
@@ -364,25 +364,25 @@ public class Gui extends JFrame {
     }
 
     private void initGame() {
-        this.initGame(new Game(this.row, this.col, this.mineCount, this.cheat, this.gameRule));
+        this.initGame(new MineSweeper(this.row, this.col, this.mineCount, this.cheat, this.gameRule));
     }
 
     private void initGame(int difficulty) {
-        this.initGame(new Game(difficulty, this.cheat, this.gameRule));
+        this.initGame(new MineSweeper(difficulty, this.cheat, this.gameRule));
     }
 
     private void initGame(int row, int col, int mineCount) {
-        this.initGame(new Game(row, col, mineCount, this.cheat, this.gameRule));
+        this.initGame(new MineSweeper(row, col, mineCount, this.cheat, this.gameRule));
     }
 
-    private void initGame(Game newGame) {
+    private void initGame(MineSweeper newGame) {
         this.game = newGame;
         this.game.setShowMine(this.showMine);
         this.row = newGame.getRow();
         this.col = newGame.getCol();
         this.mineCount = newGame.getMineCount();
 //        this.cheat = newGame.getCheat();
-//        if (newGame.getGameRule() != Game.GAME_RULE_UNKNOWN) this.gameRule = newGame.getGameRule();
+//        if (newGame.getGameRule() != MineSweeper.GAME_RULE_UNKNOWN) this.gameRule = newGame.getGameRule();
 
         this.setFrame();
 
@@ -406,12 +406,12 @@ public class Gui extends JFrame {
         this.infoBorderCanvas.setBounds(5, 5, boardWidth + 10, INFO_HEIGHT - 5);
         this.boardBorderCanvas.setBounds(5, INFO_HEIGHT + 10, boardWidth + 10, boardHeight + 10);
 
-        this.timeLabelCanvas.setBounds(13, 13, 80, 34);
-        this.mineLabelCanvas.setBounds(boardWidth - 73, 13, 80, 34);
+        this.mineLabelCanvas.setBounds(13, 13, 80, 34);
+        this.timeLabelCanvas.setBounds(boardWidth - 73, 13, 80, 34);
         this.faceCanvas.setBounds(10 + boardWidth / 2 - 15 - 2, 13, 34, 34);
 
-        this.timeLabel.setBounds(13 + 2, 13 + 2, 76, 30);
-        this.mineLabel.setBounds(boardWidth - 71, 13 + 2, 76, 30);
+        this.mineLabel.setBounds(13 + 2, 13 + 2, 76, 30);
+        this.timeLabel.setBounds(boardWidth - 71, 13 + 2, 76, 30);
         this.setMineLabel();
         this.faceCanvas.setEmoji(FACE_NORMAL);
     }
@@ -423,15 +423,15 @@ public class Gui extends JFrame {
     private void setFrameAfterOperation() {
         this.canvas.repaint();
         switch (this.game.getGameState()) {
-            case Game.WIN:
+            case MineSweeper.WIN:
                 faceCanvas.setEmoji(FACE_WIN);
                 this.timeThread.interrupt();
                 break;
-            case Game.LOSE:
+            case MineSweeper.LOSE:
                 faceCanvas.setEmoji(FACE_LOSE);
                 this.timeThread.interrupt();
                 break;
-            case Game.PROCESS:
+            case MineSweeper.PROCESS:
                 faceCanvas.setEmoji(FACE_NORMAL);
                 break;
         }
@@ -489,7 +489,8 @@ public class Gui extends JFrame {
                 for (int[] p : this.highlightArr) {
                     if (p.length == 1) { state = p[0]; continue; }
                     int x = p[0], y = p[1];
-                    this.drawCell(x, y, state == AI.MINE ? Game.MINE : game.getPlayerBoard(x, y, true), state != AI.UNKNOWN, g);
+                    this.drawCell(x, y, state == AutoSweeper.MINE ? MineSweeper.MINE : game.getPlayerBoard(x, y, true),
+                            state != AutoSweeper.UNKNOWN, g);
                 }
             }
             for (int i = 0; i < row; ++i)  for (int j = 0; j < col; ++j) {
@@ -518,9 +519,9 @@ public class Gui extends JFrame {
             int py = this.idxXToPosY(x);
 
             if (state < 0 || state > 8) {
-                if (pressed && (state == Game.UNCHECKED || state == Game.GRAY_MINE)) {
+                if (pressed && (state == MineSweeper.UNCHECKED || state == MineSweeper.GRAY_MINE)) {
                     this.drawPressedVoidCell(px, py, g);
-                    if (state == Game.GRAY_MINE) this.drawMineOfCell(px, py, new Color(166, 166, 166), g);
+                    if (state == MineSweeper.GRAY_MINE) this.drawMineOfCell(px, py, new Color(166, 166, 166), g);
                 }
                 else {
                     g.setColor(new Color(253, 253, 253));
@@ -537,15 +538,15 @@ public class Gui extends JFrame {
                     g.fillRect(px + 4, py + 4, cellLength - 8, cellLength - 8);
 
                     switch (state) {
-                        case Game.FLAG: this.drawFlagOfCell(px, py, g); break;
-                        case Game.QUESTION: this.drawQuestionOfCell(px, py, g); break;
-                        case Game.MINE: this.drawMineOfCell(px, py, Color.BLACK, g); break;
-                        case Game.NOT_MINE: this.drawMineOfCell(px, py, Color.BLACK, g); this.drawNotOfCell(px, py, g); break;
-                        case Game.RED_MINE: this.drawMineOfCell(px, py, Color.RED, g); break;
-                        case Game.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
+                        case MineSweeper.FLAG: this.drawFlagOfCell(px, py, g); break;
+                        case MineSweeper.QUESTION: this.drawQuestionOfCell(px, py, g); break;
+                        case MineSweeper.MINE: this.drawMineOfCell(px, py, Color.BLACK, g); break;
+                        case MineSweeper.NOT_MINE: this.drawMineOfCell(px, py, Color.BLACK, g); this.drawNotOfCell(px, py, g); break;
+                        case MineSweeper.RED_MINE: this.drawMineOfCell(px, py, Color.RED, g); break;
+                        case MineSweeper.GRAY_MINE: this.drawMineOfCell(px, py, Color.GRAY, g); break;
                     }
                 }
-                if (this.probability != null && state == Game.UNCHECKED) this.drawDebug(px, py, g);
+                if (this.probability != null && state == MineSweeper.UNCHECKED) this.drawDebug(px, py, g);
             }
             else {
                 this.drawPressedVoidCell(px, py, g);
@@ -664,7 +665,7 @@ public class Gui extends JFrame {
         @Override
         public void mousePressed(MouseEvent e) {
             if (this.dontUpdate) return;
-            if (game.getGameState() != Game.PROCESS) return;
+            if (game.getGameState() != MineSweeper.PROCESS) return;
             faceCanvas.setEmoji(FACE_PRESS);
             this.mouseX = this.posYToIdxX(e.getY());
             this.mouseY = this.posXToIdxY(e.getX());
@@ -682,8 +683,8 @@ public class Gui extends JFrame {
                 this.mouseLeft = false;
                 if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
                 else if (!this.mouseRight) {
-                    game.uncover(this.mouseX, this.mouseY);
-                    if (!timeThread.isAlive() && game.getGameState() == Game.PROCESS && !cheat)
+                    game.dig(this.mouseX, this.mouseY);
+                    if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                         timeThread.start();
                 }
             }
@@ -691,9 +692,9 @@ public class Gui extends JFrame {
                 this.mouseRight = false;
                 if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
                 else if (!this.mouseLeft) {
-                    game.cycFlagAndQuestion(this.mouseX, this.mouseY);
+                    game.mark(this.mouseX, this.mouseY);
                     setMineLabel();
-                    if (!timeThread.isAlive() && game.getGameState() == Game.PROCESS && !cheat)
+                    if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                         timeThread.start();
                 }
             }

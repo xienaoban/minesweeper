@@ -3,7 +3,7 @@ import javafx.util.Pair;
 import java.math.BigDecimal;
 import java.util.*;
 
-public class AI {
+public class AutoSweeper {
     // AI 给出的三种判断
     public static final int UNKNOWN = 0;
     public static final int MINE = 1;
@@ -33,15 +33,15 @@ public class AI {
      * @param y 目标格子 y 坐标
      * @return 周围的 Unchecked 格子全为 (或全不为) 雷、或未知
      */
-    public static int checkOneUncoveredCell(Game game, int x, int y) {
+    public static int checkOneUncoveredCell(MineSweeper game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
             switch (game.getPlayerBoard(p.getKey(), p.getValue())) {
-                case Game.UNCHECKED:
-                case Game.QUESTION: ++uncheckedOrQuestion; break;
-                case Game.FLAG: ++flag; break;
+                case MineSweeper.UNCHECKED:
+                case MineSweeper.QUESTION: ++uncheckedOrQuestion; break;
+                case MineSweeper.FLAG: ++flag; break;
             }
         }
         if (uncheckedOrQuestion == 0) return UNKNOWN;
@@ -60,7 +60,7 @@ public class AI {
      * @return 返回以 Pair 存储的两个值, key 和 value 分别为「可揭开的格子列表」与「可标雷的格子列表」
      */
     public static Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> checkTwoUncoveredCell(
-            Game game, int x1, int y1, int x2, int y2) {
+            MineSweeper game, int x1, int y1, int x2, int y2) {
         int num1 = game.getPlayerBoard(x1, y1), num2 = game.getPlayerBoard(x2, y2);
         if (num1 > 8 || num2 > 8) return null;
         int diffX = x2 - x1, diffY = y2 - y1;
@@ -71,15 +71,15 @@ public class AI {
             int xx1 = x1 - diffX + diffY * i, yy1 = y1 - diffY + diffX * i;
             if (game.isPointInRange(xx1, yy1)) {
                 int pp1 = game.getPlayerBoard(xx1, yy1);
-                if (pp1 == Game.FLAG) --num1;
-                else if (pp1 == Game.UNCHECKED || pp1 == Game.QUESTION) around1.add(new Pair<>(xx1, yy1));
+                if (pp1 == MineSweeper.FLAG) --num1;
+                else if (pp1 == MineSweeper.UNCHECKED || pp1 == MineSweeper.QUESTION) around1.add(new Pair<>(xx1, yy1));
             }
 
             int xx2 = x2 + diffX + diffY * i, yy2 = y2 + diffY + diffX * i;
             if (game.isPointInRange(xx2, yy2)) {
                 int pp2 = game.getPlayerBoard(xx2, yy2);
-                if (pp2 == Game.FLAG) --num2;
-                else if (pp2 == Game.UNCHECKED || pp2 == Game.QUESTION) around2.add(new Pair<>(xx2, yy2));
+                if (pp2 == MineSweeper.FLAG) --num2;
+                else if (pp2 == MineSweeper.UNCHECKED || pp2 == MineSweeper.QUESTION) around2.add(new Pair<>(xx2, yy2));
             }
         }
         Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res = null;
@@ -97,9 +97,9 @@ public class AI {
      * @return AI认为是有、无雷还是未知
      */
     @Deprecated
-    public static int checkUncheckedCellBasic(Game game, int x, int y) {
-        if (game.getPlayerBoard(x, y) != Game.UNCHECKED
-                && game.getPlayerBoard(x, y) != Game.QUESTION) return UNKNOWN;
+    public static int checkUncheckedCellBasic(MineSweeper game, int x, int y) {
+        if (game.getPlayerBoard(x, y) != MineSweeper.UNCHECKED
+                && game.getPlayerBoard(x, y) != MineSweeper.QUESTION) return UNKNOWN;
         List<Pair<Integer, Integer>> around = game.getAround(x, y);
         for (Pair<Integer, Integer> p : around) {
             int px = p.getKey(), py = p.getValue();
@@ -117,14 +117,14 @@ public class AI {
      * @param game 一局游戏
      * @return int数组第一个值代表类型, 第二、第三个值代表坐标 (只返回找到的第一个格子)
      */
-    public static int[] checkAllBasic(Game game) {
+    public static int[] checkAllBasic(MineSweeper game) {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
             int type = checkOneUncoveredCell(game, x, y);
             if (type != UNKNOWN) {
                 for (Pair<Integer, Integer> p : game.getAround(x, y)) {
                     int px = p.getKey(), py = p.getValue();
-                    if (game.getPlayerBoard(px, py) != Game.UNCHECKED
-                            && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
+                    if (game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED
+                            && game.getPlayerBoard(px, py) != MineSweeper.QUESTION) continue;
                     return new int[]{type, px, py};
                 }
             }
@@ -134,7 +134,7 @@ public class AI {
                 Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> _pair;
                 try {
                     _pair = checkTwoUncoveredCell(game, x, y, x2, y2);
-                } catch (Game.PointOutOfBoundsException ignored) { continue; }
+                } catch (MineSweeper.PointOutOfBoundsException ignored) { continue; }
                 if (_pair != null) {
                     for (Pair<Integer, Integer> p : _pair.getKey()) {
                         return new int[]{NOT_MINE, p.getKey(), p.getValue()};
@@ -152,7 +152,7 @@ public class AI {
      * 仅通过周围八格信息, 找出所有必为雷或必不为雷的格子
      * @param game 一局游戏
      */
-    public static void sweepAllBasic(Game game) {
+    public static void sweepAllBasic(MineSweeper game) {
         boolean swept;
         do {
             swept = false;
@@ -163,11 +163,11 @@ public class AI {
                     swept = true;
                     for (Pair<Integer, Integer> p : game.getAround(x, y)) {
                         int px = p.getKey(), py = p.getValue();
-                        if (game.getPlayerBoard(px, py) != Game.UNCHECKED
-                                && game.getPlayerBoard(px, py) != Game.QUESTION) continue;
+                        if (game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED
+                                && game.getPlayerBoard(px, py) != MineSweeper.QUESTION) continue;
                         if (type == MINE) game.setFlag(px, py);
-                        else if (type == NOT_MINE) game.uncover(px, py);
-                        if (game.getGameState() == Game.LOSE) return;
+                        else if (type == NOT_MINE) game.dig(px, py);
+                        if (game.getGameState() == MineSweeper.LOSE) return;
                     }
                 }
 
@@ -180,8 +180,8 @@ public class AI {
                     if (_pair != null) {
                         if (_pair.getKey().size() + _pair.getValue().size() > 0) swept = true;
                         for (Pair<Integer, Integer> p : _pair.getKey()) {
-                            game.uncover(p.getKey(), p.getValue());
-                            if (game.getGameState() == Game.LOSE) return;
+                            game.dig(p.getKey(), p.getValue());
+                            if (game.getGameState() == MineSweeper.LOSE) return;
                         }
                         for (Pair<Integer, Integer> p : _pair.getValue()) {
                             game.setFlag(p.getKey(), p.getValue());
@@ -197,20 +197,20 @@ public class AI {
      * @param game 一局游戏
      * @return 最后一次计算得概率后没有利用, 将其返回以重复利用
      */
-    public static double[][] sweepAllAdvanced(Game game) {
+    public static double[][] sweepAllAdvanced(MineSweeper game) {
         boolean loop = true;
         double[][] prob = null;
-        while (loop && game.getGameState() == Game.PROCESS) {
+        while (loop && game.getGameState() == MineSweeper.PROCESS) {
             loop = false;
             sweepAllBasic(game);
-            if (game.getGameState() != Game.PROCESS) break;
+            if (game.getGameState() != MineSweeper.PROCESS) break;
             prob = calculateAllProbabilities(game);
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
                 // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
-                // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != Game.FLAG) game.setFlag(i, j);
-                if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == Game.UNCHECKED) {
-                    game.uncover(i, j);
+                // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != MineSweeper.FLAG) game.setFlag(i, j);
+                if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == MineSweeper.UNCHECKED) {
+                    game.dig(i, j);
                     loop = true;
                 }
             }
@@ -223,20 +223,20 @@ public class AI {
      * 猜雷就是在本方法实现的
      * @param game 一局游戏
      */
-    public static void sweepToEnd(Game game) {
+    public static void sweepToEnd(MineSweeper game) {
         if (game.getStep() == 0) {
             // Win7 的规则下第一步点击距离角落两格的点最好
-            if (game.getGameRule() == Game.GAME_RULE_WIN_7) game.uncover(2, 2);
-            else game.uncover(0, 0);
+            if (game.getGameRule() == MineSweeper.GAME_RULE_WIN_7) game.dig(2, 2);
+            else game.dig(0, 0);
         }
-        while (game.getGameState() == Game.PROCESS) {
+        while (game.getGameState() == MineSweeper.PROCESS) {
             double[][] prob = sweepAllAdvanced(game);
-            if (game.getGameState() != Game.PROCESS) break;
+            if (game.getGameState() != MineSweeper.PROCESS) break;
             if (prob == null) prob = calculateAllProbabilities(game);
             int maxX = -1, maxY = -1, corner = -1, intensity = -1;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 int cellState = game.getPlayerBoard(i, j);
-                if (cellState != Game.UNCHECKED && cellState != Game.QUESTION) continue;
+                if (cellState != MineSweeper.UNCHECKED && cellState != MineSweeper.QUESTION) continue;
                 if (maxX != -1 && prob[i][j] > prob[maxX][maxY]) continue;
                 boolean newMax = false;
                 int cor = 0, in = getNumberCellCntAround(game, i, j, 3);
@@ -255,7 +255,7 @@ public class AI {
                 intensity = in;
             }
             // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
-            game.uncover(maxX, maxY);
+            game.dig(maxX, maxY);
         }
     }
 
@@ -267,20 +267,20 @@ public class AI {
      * @param y 目标格子 y 坐标
      * @return 是否合法
      */
-    public static boolean isUncoveredCellLegal(Game game, int[][] board, int x, int y) {
+    public static boolean isUncoveredCellLegal(MineSweeper game, int[][] board, int x, int y) {
         if (board[x][y] > 8) return false;
         List<Pair<Integer, Integer>> list = game.getAround(x, y);
         int mineCnt = 0, uncheckedCnt = 0;
         for (Pair<Integer, Integer> p : list) {
             switch (board[p.getKey()][p.getValue()]) {
-                case Game.FLAG:
-                case Game.MINE:
-                case Game.RED_MINE:
-                case Game.GRAY_MINE:
+                case MineSweeper.FLAG:
+                case MineSweeper.MINE:
+                case MineSweeper.RED_MINE:
+                case MineSweeper.GRAY_MINE:
                     ++mineCnt;
                     break;
-                case Game.UNCHECKED:
-                case Game.QUESTION:
+                case MineSweeper.UNCHECKED:
+                case MineSweeper.QUESTION:
                     ++uncheckedCnt;
                     break;
                 default: break;
@@ -311,7 +311,7 @@ public class AI {
      * @param game 一局游戏
      * @return Pair 的 key 储存所有分量的所有点, value 为整个图
      */
-    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(Game game) {
+    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(MineSweeper game) {
         List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
         int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
@@ -333,7 +333,7 @@ public class AI {
                 // 遍历该数字格子周围的所有未知格子, 它们属于同一个分量
                 for (Pair<Integer, Integer> p : game.getAround(cx, cy)) {
                     int px = p.getKey(), py = p.getValue();
-                    if ((game.getPlayerBoard(px, py) != Game.UNCHECKED && game.getPlayerBoard(px, py) != Game.QUESTION)
+                    if ((game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED && game.getPlayerBoard(px, py) != MineSweeper.QUESTION)
                             || ccGraph[px][py] == id) continue;
                     findANewComponent = true;
                     points.add(new Pair<>(px, py));
@@ -358,7 +358,7 @@ public class AI {
      * @param game 一局游戏
      * @return 每个格子的有雷概率
      */
-    public static double[][] calculateAllProbabilities(Game game) {
+    public static double[][] calculateAllProbabilities(MineSweeper game) {
         double[][] probGraph = new double[game.getRow()][game.getCol()];
         Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponents(game);
         List<List<Pair<Integer, Integer>>> ccList = _ccPair.getKey();
@@ -377,7 +377,7 @@ public class AI {
         // 所有未知孤立格子 (即周围没有已知数字格子的格子) 统一计算概率为 "平均剩余雷数/未知孤立格子数"
         int unknownCellCnt = 0;
         for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-            if ((game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION)
+            if ((game.getPlayerBoard(i, j) == MineSweeper.UNCHECKED || game.getPlayerBoard(i, j) == MineSweeper.QUESTION)
                     && ccGraph[i][j] == CC_UNKNOWN) ++unknownCellCnt;
         }
         if (unknownCellCnt > 0) {
@@ -386,10 +386,10 @@ public class AI {
             else if (Math.abs(unknownCellProb - 1.0) < 1e-5) unknownCellProb = 1.0;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 if (ccGraph[i][j] == CC_UNKNOWN) {
-                    if (game.getPlayerBoard(i, j) == Game.UNCHECKED || game.getPlayerBoard(i, j) == Game.QUESTION) {
+                    if (game.getPlayerBoard(i, j) == MineSweeper.UNCHECKED || game.getPlayerBoard(i, j) == MineSweeper.QUESTION) {
                         probGraph[i][j] = unknownCellProb;
                     }
-                    else if (game.getPlayerBoard(i, j) == Game.FLAG) probGraph[i][j] = 1.0;
+                    else if (game.getPlayerBoard(i, j) == MineSweeper.FLAG) probGraph[i][j] = 1.0;
                 }
             }
         }
@@ -407,7 +407,7 @@ public class AI {
      * @param curMine 当前有多少雷
      * @return 可行排列总数
      */
-    private static int backtrackAllPossiblePermutations(Game game, int[][] board, List<Pair<Integer, Integer>> points,
+    private static int backtrackAllPossiblePermutations(MineSweeper game, int[][] board, List<Pair<Integer, Integer>> points,
                                                         Map<Integer, int[]> ccPerm, int curIndex, int curMine) {
         // 成功找到一个可能的排列
         if (curIndex >= points.size()) {
@@ -419,7 +419,7 @@ public class AI {
             }
             for (int i = 0; i < points.size(); ++i) {
                 int px = points.get(i).getKey(), py = points.get(i).getValue();
-                if (board[px][py] == Game.MINE) ++count[i];
+                if (board[px][py] == MineSweeper.MINE) ++count[i];
             }
             ++count[points.size()]; // 排列个数总数
             return 1;
@@ -428,15 +428,15 @@ public class AI {
         // 分别递归考虑当前格子是雷、不是雷的情况
         int x = points.get(curIndex).getKey(), y = points.get(curIndex).getValue();
         int res = 0;
-        board[x][y] = Game.MINE;
+        board[x][y] = MineSweeper.MINE;
         if (curMine < game.getMineLeft() && isUncheckedCellLegal(game, board, x, y)) {
             res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine + 1);
         }
-        board[x][y] = Game.NOT_MINE;
+        board[x][y] = MineSweeper.NOT_MINE;
         if (isUncheckedCellLegal(game, board, x, y)) {
             res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine);
         }
-        board[x][y] = Game.UNCHECKED;
+        board[x][y] = MineSweeper.UNCHECKED;
         return res;
     }
 
@@ -448,7 +448,7 @@ public class AI {
      * @param probGraph 一个空白数组, 用于返回每个格子的概率
      * @return 所有分量平均雷数
      */
-    private static double calculateProbabilitiesOfAllConnectedComponents(Game game,
+    private static double calculateProbabilitiesOfAllConnectedComponents(MineSweeper game,
                                                                          List<List<Pair<Integer, Integer>>> ccList,
                                                                          List<Map<Integer, int[]>> ccPermList,
                                                                          double[][] probGraph) {
@@ -549,7 +549,7 @@ public class AI {
      * @param radius 半径 (最终范围为边长 2r-1 的一个正方形)
      * @return 数字格子个数
      */
-    private static int getNumberCellCntAround(Game game, int x, int y, int radius) {
+    private static int getNumberCellCntAround(MineSweeper game, int x, int y, int radius) {
         int res = 0;
         for (int i = x - radius + 1; i < x + radius; ++i) for (int j = y - radius + 1; j < y + radius; ++j) {
             if (i < 0 || i >= game.getRow() || j < 0 || j >= game.getCol()) continue;
@@ -567,7 +567,7 @@ public class AI {
      * @param y 目标格子 y 坐标
      * @return 是否合法
      */
-    private static boolean isUncheckedCellLegal(Game game, int[][] board, int x, int y) {
+    private static boolean isUncheckedCellLegal(MineSweeper game, int[][] board, int x, int y) {
         if (board[x][y] < 9) return false;
         for (Pair<Integer, Integer> p : game.getAround(x, y)) {
             int px = p.getKey(), py = p.getValue();
@@ -581,7 +581,7 @@ public class AI {
     /**
      * 工具类, 不允许实例化
      */
-    private AI() {}
+    private AutoSweeper() {}
 
     /**
      * 控制台输出连通分量视图

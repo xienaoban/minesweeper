@@ -17,7 +17,7 @@ public class Main {
     // 一些在 testAI 及其创建的线程中用到的变量
     private static long time;
     private static int round;
-    private static Game game;
+    private static MineSweeper game;
 
     public static void main(String[] args) {
         if (args.length == 0 || args[0].equals("gui")) new Gui();
@@ -41,12 +41,12 @@ public class Main {
 
     /**
      * CLI 扫雷入口
-     * 没仔细做, 算是个对 Game 提供的 API 的简单应用展示
+     * 没仔细做, 算是个对 MineSweeper 提供的 API 的简单应用展示
      */
     private static void cli() {
         Scanner sc = new Scanner(System.in);
         System.out.print("输入 行 列 雷数: ");
-        Game game = new Game(sc.nextInt(), sc.nextInt(), sc.nextInt());
+        MineSweeper game = new MineSweeper(sc.nextInt(), sc.nextInt(), sc.nextInt());
         sc.nextLine();
         while (true) {
             System.out.print("输入操作: ");
@@ -62,10 +62,10 @@ public class Main {
             }
             int success;
             switch (op) {
-                case 'l': success = game.uncover(x, y); break;
-                case 'r': success = game.cycFlagAndQuestion(x, y); break;
+                case 'l': success = game.dig(x, y); break;
+                case 'r': success = game.mark(x, y); break;
                 case 'c': success = game.check(x, y); break;
-                case 'a': AI.sweepToEnd(game); success = game.getGameState(); break;
+                case 'a': AutoSweeper.sweepToEnd(game); success = game.getGameState(); break;
                 default:
                     System.out.println("l <x> <y>    模拟左键 (揭开)");
                     System.out.println("r <x> <y>    模拟右键 (标旗, 标问号)");
@@ -74,8 +74,8 @@ public class Main {
                     continue;
             }
             game.printPlayerBoardToConsole();
-            if (success != Game.PROCESS) {
-                System.out.println(success == Game.WIN ? "胜利!" : "失败!");
+            if (success != MineSweeper.PROCESS) {
+                System.out.println(success == MineSweeper.WIN ? "胜利!" : "失败!");
                 break;
             }
         }
@@ -87,7 +87,7 @@ public class Main {
      * @param args 执行参数
      */
     private static void testAI(String[] args) {
-        int times = 10000, difficulty = Game.DIFFICULTY_EXPERT, gameRule = Game.GAME_RULE_WIN_XP;
+        int times = 10000, difficulty = MineSweeper.DIFFICULTY_EXPERT, gameRule = MineSweeper.GAME_RULE_WIN_XP;
         for (int i = 1; i < args.length; i += 2) {
             String nextArg = i + 1 < args.length ? args[i + 1] : "";
             boolean error = false;
@@ -97,22 +97,22 @@ public class Main {
                     catch (Exception ignored) { error = true; }
                     break;
                 case "-r": case "--rule":
-                    if (nextArg.contains("7")) gameRule = Game.GAME_RULE_WIN_7;
+                    if (nextArg.contains("7")) gameRule = MineSweeper.GAME_RULE_WIN_7;
                     else if (nextArg.contains("xp") || nextArg.contains("Xp") || nextArg.contains("XP")) {
-                        gameRule = Game.GAME_RULE_WIN_XP;
+                        gameRule = MineSweeper.GAME_RULE_WIN_XP;
                     }
                     else error = true;
                     break;
                 case "-d": case "--difficulty":
                     switch (nextArg) {
                         case "1": case "beg": case "beginner":
-                            difficulty = Game.DIFFICULTY_BEGINNER;
+                            difficulty = MineSweeper.DIFFICULTY_BEGINNER;
                             break;
                         case "2": case "int": case "intermediate":
-                            difficulty = Game.DIFFICULTY_INTERMEDIATE;
+                            difficulty = MineSweeper.DIFFICULTY_INTERMEDIATE;
                             break;
                         case "3": case "exp": case "expert":
-                            difficulty = Game.DIFFICULTY_EXPERT;
+                            difficulty = MineSweeper.DIFFICULTY_EXPERT;
                             break;
                         default: error = true;
                     }
@@ -130,9 +130,9 @@ public class Main {
             }
         }
         System.out.printf("执行次数: %d    游戏规则: %s    难度: %s", times,
-                gameRule == Game.GAME_RULE_WIN_XP ? "WinXP" : "Win7",
-                difficulty == Game.DIFFICULTY_BEGINNER ? "初级" : (
-                        difficulty == Game.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
+                gameRule == MineSweeper.GAME_RULE_WIN_XP ? "WinXP" : "Win7",
+                difficulty == MineSweeper.DIFFICULTY_BEGINNER ? "初级" : (
+                        difficulty == MineSweeper.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
                 )
         );
         System.out.println();
@@ -150,7 +150,7 @@ public class Main {
                         if (diff > 2000) {
                             System.out.println("第 " + round + " 局耗时超预期, 可能是连通分量太长. 当前步数: "
                                     + game.getStep() + ". 当前连通分量: ");
-                            AI.printConnectedComponent(AI.findAllConnectedComponents(game).getValue());
+                            AutoSweeper.printConnectedComponent(AutoSweeper.findAllConnectedComponents(game).getValue());
                             time = System.currentTimeMillis();
                         }
                     }
@@ -163,17 +163,17 @@ public class Main {
         long startTime = System.currentTimeMillis();
         for (round = 1; round <= times; ++round) {
             time = System.currentTimeMillis();
-//            game = new Game(badMineBoardExample);
-            game = new Game(difficulty, gameRule);
-            AI.sweepToEnd(game);
-            boolean win = game.getGameState() == Game.WIN;
+//            game = new MineSweeper(badMineBoardExample);
+            game = new MineSweeper(difficulty, gameRule);
+            AutoSweeper.sweepToEnd(game);
+            boolean win = game.getGameState() == MineSweeper.WIN;
             int exploreRate = 100;
             if (win) ++winCnt;
             else {
                 // 计算一下棋盘被探索的程度
                 int explored = 0;
                 for (int[] row : game.getPlayerBoard()) for (int v : row) {
-                    if (v < 9 || v == Game.FLAG) ++explored;
+                    if (v < 9 || v == MineSweeper.FLAG) ++explored;
                 }
                 exploreRate = 100 * explored / (game.getRow() * game.getCol());
             }

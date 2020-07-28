@@ -216,6 +216,67 @@ public class MineSweeper {
     }
 
     /**
+     * 将某个未被揭开的格子标记为地雷 (即鼠标右键的插旗)
+     * @param x 目标格子的 x 坐标
+     * @param y 目标格子的 y 坐标
+     */
+    private void setFlag(int x, int y) {
+        this.pointRangeCheck(x, y);
+        if (this.state != PROCESS) return;
+        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION) {
+            this.recordLastPlayerBoard();
+            ++this.step;
+            this.playerBoard[x][y] = FLAG;
+            --this.mineLeft;
+        }
+    }
+
+    /**
+     * 将某个被标旗的格子取消标记 (即鼠标右键的插旗)
+     * 同时剩余雷数会加一
+     * @param x 目标格子的 x 坐标
+     * @param y 目标格子的 y 坐标
+     */
+    private void unsetFlag(int x, int y) {
+        this.pointRangeCheck(x, y);
+        if (this.state == PROCESS && this.playerBoard[x][y] == FLAG) {
+            this.recordLastPlayerBoard();
+            ++this.step;
+            this.playerBoard[x][y] = UNCHECKED;
+            ++this.mineLeft;
+        }
+    }
+
+    /**
+     * 将一个未知或被标旗的格子设为问号格子  (即两次鼠标右键)
+     * @param x 目标格子的 x 坐标
+     * @param y 目标格子的 y 坐标
+     */
+    private void setQuestion(int x, int y) {
+        this.pointRangeCheck(x, y);
+        if (this.state != PROCESS) return;
+        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG) {
+            this.recordLastPlayerBoard();
+            ++this.step;
+            this.playerBoard[x][y] = QUESTION;
+        }
+    }
+
+    /**
+     * 将一个问号格子设为未知格子
+     * @param x 目标格子的 x 坐标
+     * @param y 目标格子的 y 坐标
+     */
+    private void unsetQuestion(int x, int y) {
+        this.pointRangeCheck(x, y);
+        if (this.state == PROCESS && this.playerBoard[x][y] == QUESTION) {
+            this.recordLastPlayerBoard();
+            ++this.step;
+            this.playerBoard[x][y] = UNCHECKED;
+        }
+    }
+
+    /**
      * 游戏胜利或结束后, 更新游戏状态并公布所有的雷
      * @param state 最终游戏状态
      * @return 最终游戏状态
@@ -223,7 +284,8 @@ public class MineSweeper {
     private int endAndPublishMineBoard(int state) {
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
             if (this.playerBoard[i][j] == FLAG && !this.mineBoard[i][j]) this.playerBoard[i][j] = NOT_MINE;
-            else if (this.playerBoard[i][j] == UNCHECKED && this.mineBoard[i][j]) this.playerBoard[i][j] = MINE;
+            else if ((this.playerBoard[i][j] == UNCHECKED || this.playerBoard[i][j] == QUESTION)
+                    && this.mineBoard[i][j]) this.playerBoard[i][j] = MINE;
         }
         return this.state = state;
     }
@@ -246,8 +308,10 @@ public class MineSweeper {
         this.lastPlayerBoard = null;
         this.state = PROCESS;
         this.coveredCellLeft = this.row * this.col - this.mineCount;
+        this.mineLeft = this.mineCount;
         for (int i = 0; i < this.row; ++i) for (int j = 0; j < this.col; ++j) {
             if (this.playerBoard[i][j] < 9) --this.coveredCellLeft;
+            else if (this.playerBoard[i][j] == FLAG) --mineLeft;
         }
     }
 
@@ -259,7 +323,8 @@ public class MineSweeper {
      */
     public int dig(int x, int y) {
         this.pointRangeCheck(x, y);
-        if (this.state != PROCESS || this.playerBoard[x][y] != UNCHECKED) return this.state;
+        if (this.state != PROCESS
+                || (this.playerBoard[x][y] != UNCHECKED && this.playerBoard[x][y] != QUESTION)) return this.state;
         this.recordLastPlayerBoard();
         ++this.step;
 
@@ -275,7 +340,7 @@ public class MineSweeper {
             Pair<Integer, Integer> point = queue.poll();
             x = point.getKey();
             y = point.getValue();
-            if (this.playerBoard[x][y] != UNCHECKED) continue;
+            if (this.playerBoard[x][y] != UNCHECKED && this.playerBoard[x][y] != QUESTION) continue;
             this.playerBoard[x][y] = this.calculateValue(x, y);
             --this.coveredCellLeft;
             if (this.playerBoard[x][y] != 0) continue;
@@ -283,79 +348,12 @@ public class MineSweeper {
             for (Pair<Integer, Integer> p : this.getAround(x, y)) {
                 int px = p.getKey();
                 int py = p.getValue();
-                if (this.playerBoard[px][py] == UNCHECKED) queue.offer(new Pair<>(px, py));
+                if (this.playerBoard[px][py] == UNCHECKED || this.playerBoard[px][py] == QUESTION) {
+                    queue.offer(new Pair<>(px, py));
+                }
             }
         }
         if (this.coveredCellLeft == 0) this.endAndPublishMineBoard(WIN);
-        return this.state;
-    }
-
-    /**
-     * 将某个未被揭开的格子标记为地雷 (即鼠标右键的插旗)
-     * @param x 目标格子的 x 坐标
-     * @param y 目标格子的 y 坐标
-     * @return 执行该操作后的游戏状态
-     */
-    public int setFlag(int x, int y) {
-        this.pointRangeCheck(x, y);
-        if (this.state != PROCESS) return this.state;
-        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == QUESTION) {
-            this.recordLastPlayerBoard();
-            ++this.step;
-            this.playerBoard[x][y] = FLAG;
-            --this.mineLeft;
-        }
-        return this.state;
-    }
-
-    /**
-     * 将某个被标旗的格子取消标记 (即鼠标右键的插旗)
-     * 同时剩余雷数会加一
-     * @param x 目标格子的 x 坐标
-     * @param y 目标格子的 y 坐标
-     * @return 执行该操作后的游戏状态
-     */
-    public int unsetFlag(int x, int y) {
-        this.pointRangeCheck(x, y);
-        if (this.state == PROCESS && this.playerBoard[x][y] == FLAG) {
-            this.recordLastPlayerBoard();
-            ++this.step;
-            this.playerBoard[x][y] = UNCHECKED;
-            ++this.mineLeft;
-        }
-        return this.state;
-    }
-
-    /**
-     * 将一个未知或被标旗的格子设为问号格子  (即两次鼠标右键)
-     * @param x 目标格子的 x 坐标
-     * @param y 目标格子的 y 坐标
-     * @return 执行该操作后的游戏状态
-     */
-    public int setQuestion(int x, int y) {
-        this.pointRangeCheck(x, y);
-        if (this.state != PROCESS) return this.state;
-        if (this.playerBoard[x][y] == UNCHECKED || this.playerBoard[x][y] == FLAG) {
-            this.recordLastPlayerBoard();
-            ++this.step;
-            this.playerBoard[x][y] = QUESTION;
-        }
-        return this.state;
-    }
-
-    /**
-     * 将一个问号格子设为未知格子
-     * @param x 目标格子的 x 坐标
-     * @param y 目标格子的 y 坐标
-     * @return 执行该操作后的游戏状态
-     */
-    public int unsetQuestion(int x, int y) {
-        this.pointRangeCheck(x, y);
-        if (this.state == PROCESS && this.playerBoard[x][y] == QUESTION) {
-            this.recordLastPlayerBoard();
-            ++this.step;
-            this.playerBoard[x][y] = UNCHECKED;
-        }
         return this.state;
     }
 
@@ -383,7 +381,8 @@ public class MineSweeper {
         for (Pair<Integer, Integer> point : around) {
             int px = point.getKey();
             int py = point.getValue();
-            if (this.playerBoard[px][py] == UNCHECKED && this.mineBoard[px][py]) {
+            if ((this.playerBoard[px][py] == UNCHECKED || this.playerBoard[px][py] == QUESTION)
+                    && this.mineBoard[px][py]) {
                 fail = true;
                 this.playerBoard[px][py] = RED_MINE;
             }
@@ -414,6 +413,25 @@ public class MineSweeper {
         }
         return this.state;
     }
+
+    /**
+     * 为 AI 特供的高速挖掘接口. 将不必要的更新挪到 lazyUpdate() 统一处理. 在本类中无作用, 主要是为 WinXpSweeper 提供的.
+     * @param x x
+     * @param y x
+     */
+    public void quickDig(int x, int y) { this.dig(x, y); }
+
+    /**
+     * 为 AI 特供的高速插旗接口. 将不必要的更新挪到 lazyUpdate() 统一处理. 在本类中无作用, 主要是为 WinXpSweeper 提供的.
+     * @param x x
+     * @param y x
+     */
+    public void quickFlag(int x, int y) { this.setFlag(x, y); }
+
+    /**
+     * 为 AI 特供的高速接口. 懒惰加载, 统一处理棋盘的更新. 在本类中无作用, 主要是为 WinXpSweeper 提供的.
+     */
+    public void lazyUpdate() {}
 
     // 一些游戏信息变量的 get 方法 (如果要返回对象, 会返回一个副本以防止篡改. 同时有些变量在非作弊状态下不允许获取)
     public int getGameState() { return this.state; }

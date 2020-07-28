@@ -165,8 +165,8 @@ public class AutoSweeper {
                         int px = p.getKey(), py = p.getValue();
                         if (game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED
                                 && game.getPlayerBoard(px, py) != MineSweeper.QUESTION) continue;
-                        if (type == MINE) game.setFlag(px, py);
-                        else if (type == NOT_MINE) game.dig(px, py);
+                        if (type == MINE) game.quickFlag(px, py);
+                        else if (type == NOT_MINE) game.quickDig(px, py);
                         if (game.getGameState() == MineSweeper.LOSE) return;
                     }
                 }
@@ -180,15 +180,16 @@ public class AutoSweeper {
                     if (_pair != null) {
                         if (_pair.getKey().size() + _pair.getValue().size() > 0) swept = true;
                         for (Pair<Integer, Integer> p : _pair.getKey()) {
-                            game.dig(p.getKey(), p.getValue());
+                            game.quickDig(p.getKey(), p.getValue());
                             if (game.getGameState() == MineSweeper.LOSE) return;
                         }
                         for (Pair<Integer, Integer> p : _pair.getValue()) {
-                            game.setFlag(p.getKey(), p.getValue());
+                            game.quickFlag(p.getKey(), p.getValue());
                         }
                     }
                 }
             }
+            game.lazyUpdate();
         } while (swept);
     }
 
@@ -210,10 +211,11 @@ public class AutoSweeper {
                 // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
                 // if (prob[i][j] == 1.0 && game.getPlayerBoard(i, j) != MineSweeper.FLAG) game.setFlag(i, j);
                 if (prob[i][j] == 0.0 && game.getPlayerBoard(i, j) == MineSweeper.UNCHECKED) {
-                    game.dig(i, j);
+                    game.quickDig(i, j);
                     loop = true;
                 }
             }
+            game.lazyUpdate();
         }
         return prob;
     }
@@ -290,6 +292,13 @@ public class AutoSweeper {
         return mineCnt <= board[x][y] && mineCnt + uncheckedCnt >= board[x][y];
     }
 
+    /**
+     * 给定 n 个未知的格子与 m 个雷, 返回所有可能的组合的个数
+     * f(n, m) = f(n - 1, m) + f(n - 1, m - 1)
+     * @param cells 未知格子数
+     * @param mines 雷的个数
+     * @return 可能的情况 (值可能超过 long 的范围, 且后续涉及浮点除法, 故采用 BigDecimal)
+     */
     public static BigDecimal getNumOfCasesForGivenCellsAndMines(int cells, int mines) {
         ArrayList<ArrayList<BigDecimal>> _arr = numOfCasesForGivenCellsAndMines;
         for (int i = _arr.size(); i <= cells; ++i) {

@@ -1,3 +1,10 @@
+/*
+ * 将 MineSweeper 类呈现在 GUI 上.
+ * 由于 GUI 不是很重要, 所以一开始没有重视, 写的比较随意, 但涉及的逻辑却随时间越来越复杂, 于是乎这坨代码逐渐形成了一座屎山.
+ * 尤其是 负责展示棋盘的内部类 BoardCanvas, 一直想重构但是涉及的逻辑比较烦, 且远没有三个 Sweeper 类重要, 就一直没改.
+ * 于是连注释都不想写了, 估计半年后包括我在内没有人看得懂了.
+ */
+
 import javafx.util.Pair;
 
 import static java.awt.event.InputEvent.*;
@@ -182,9 +189,7 @@ public class Gui extends JFrame {
             gameRuleWin7MenuItem.setSelected(true);
             if (game.getStep() == 0) initGame();
         });
-        allowQuestionMenuItem.addActionListener(e -> {
-            MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
-        });
+        allowQuestionMenuItem.addActionListener(e -> MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected()));
         cellLengthMenuItem.addActionListener(e -> {
             try {
                 cellLength = Integer.parseInt(JOptionPane.showInputDialog(faceCanvas, "格子大小设置", String.valueOf(cellLength)));
@@ -586,7 +591,7 @@ public class Gui extends JFrame {
             FontMetrics fm = g.getFontMetrics(this.font);
             int fontWidth = fm.stringWidth(s);
             int fontHeight = fm.getHeight();
-            g.setColor(new Color(234, 128, 21));
+            g.setColor(Color.BLACK);
             g.drawString(s, px + (cellLength - fontWidth) / 2, py + (cellLength + fontHeight / 3) / 2);
         }
         private void drawMineOfCell(int px, int py, Color color, Graphics2D g) {

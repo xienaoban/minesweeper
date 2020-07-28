@@ -98,8 +98,11 @@ public class Main {
                     break;
                 case "-r": case "--rule":
                     if (nextArg.contains("7")) gameRule = MineSweeper.GAME_RULE_WIN_7;
-                    else if (nextArg.contains("xp") || nextArg.contains("Xp") || nextArg.contains("XP")) {
+                    else if (nextArg.contains("xp")) {
                         gameRule = MineSweeper.GAME_RULE_WIN_XP;
+                    }
+                    else if (nextArg.contains("XP")) {
+                        gameRule = WinXpSweeper.GAME_RULE_REAL_WIN_XP;
                     }
                     else error = true;
                     break;
@@ -119,7 +122,7 @@ public class Main {
                     break;
                 case "-h": case "--help":
                     System.out.println("--times         -t 测试的局数, 默认 10000 次.");
-                    System.out.println("--rule          -r 测试的游戏规则, winxp 或 win7, 默认 winxp.");
+                    System.out.println("--rule          -r 测试的游戏规则, xp 或 7 或 XP (操作真实 XP 扫雷), 默认 xp.");
                     System.out.println("--difficulty    -d 测试的游戏难度, 初级 (beg, 1), 中级(int, 2), 高级 (exp, 3).");
                     return;
                 default: error = true;
@@ -129,7 +132,7 @@ public class Main {
                 return;
             }
         }
-        System.out.printf("执行次数: %d    游戏规则: %s    难度: %s", times,
+        System.out.printf("执行次数: %d   游戏规则: %s   难度: %s", times,
                 gameRule == MineSweeper.GAME_RULE_WIN_XP ? "WinXP" : "Win7",
                 difficulty == MineSweeper.DIFFICULTY_BEGINNER ? "初级" : (
                         difficulty == MineSweeper.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
@@ -147,7 +150,8 @@ public class Main {
                         Thread.sleep(1000);
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
-                        if (diff > 2000) {
+                        if (diff > 3000) {
+                            System.out.println();
                             System.out.println("第 " + round + " 局耗时超预期, 可能是连通分量太长. 当前步数: "
                                     + game.getStep() + ". 当前连通分量: ");
                             AutoSweeper.printConnectedComponent(AutoSweeper.findAllConnectedComponents(game).getValue());
@@ -161,14 +165,28 @@ public class Main {
         };
         th.start();
         long startTime = System.currentTimeMillis();
+        long winTime = 0;
         for (round = 1; round <= times; ++round) {
             time = System.currentTimeMillis();
 //            game = new MineSweeper(badMineBoardExample);
-            game = new MineSweeper(difficulty, gameRule);
-            AutoSweeper.sweepToEnd(game);
+            if (gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
+                game = new WinXpSweeper(true);
+            }
+            else  game = new MineSweeper(difficulty, gameRule);
+            long roundStartTime = System.currentTimeMillis();
+            try { AutoSweeper.sweepToEnd(game); }
+            catch (Exception e) {
+                e.printStackTrace();
+                times = round;
+                break;
+            }
+            long roundEndTime = System.currentTimeMillis();
             boolean win = game.getGameState() == MineSweeper.WIN;
             int exploreRate = 100;
-            if (win) ++winCnt;
+            if (win) {
+                ++winCnt;
+                winTime += roundEndTime - roundStartTime;
+            }
             else {
                 // 计算一下棋盘被探索的程度
                 int explored = 0;
@@ -178,9 +196,10 @@ public class Main {
                 exploreRate = 100 * explored / (game.getRow() * game.getCol());
             }
             ++exploreRateView[exploreRate / 10];
-            System.out.printf("第 %d 局: %s    探索程度: %s    当前胜率: %.4f%%\r", round, (win ? "胜" : "负"),
+            System.out.printf("第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    \r",
+                    round, (win ? "胜" : "负"),
                     (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
-                    (double)winCnt / (double)round * 100);
+                    (double)winCnt / (double)round * 100, winTime / (winCnt + 1), (roundEndTime - startTime) / round);
         }
         game = null;
         long totalTime = System.currentTimeMillis() - startTime;
@@ -188,8 +207,8 @@ public class Main {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
         System.out.print("                                                         \r");
-        System.out.printf("胜率: %.2f%%    运行局数: %d    运行总耗时: %d秒    平均每局耗时: %d毫秒",
-                (double)winCnt / (double)times * 100, times, totalTime / 1000, totalTime / times);
+        System.out.printf("运行局数: %d   胜率: %.2f%%   运行总耗时: %d秒   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒        ",
+                times, (double)winCnt / (double)times * 100, totalTime / 1000, winTime / (winCnt + 1), totalTime / times);
         System.out.println();
         System.out.println("探索程度统计: ");
         System.out.println("A 占比");

@@ -30,14 +30,15 @@ public class WinXpSweeper extends MineSweeper {
         Point yellowFace = this.findYellowFace(image);
         if (yellowFace == null) throw new WindowOccludedException();
         Rectangle rect = this.boardPosition = this.findWindow(image, yellowFace);
-        image = image.getSubimage(rect.x, rect.y, rect.width, rect.height);
         this.activateWindow();
         if (newRound) {
             this.robot.mouseMove(yellowFace.x, yellowFace.y);
             this.robot.mousePress(InputEvent.BUTTON1_MASK);
             this.robot.mouseRelease(InputEvent.BUTTON1_MASK);
-            this.robot.delay(8);
+            this.robot.delay(14);
+            image = this.captureBoard();
         }
+        else image = image.getSubimage(rect.x, rect.y, rect.width, rect.height);
 
         int row = (image.getHeight() - OFFSET_Y - OFFSET_X) / 16;
         int col = (image.getWidth() - 2 * OFFSET_X) / 16;
@@ -47,7 +48,7 @@ public class WinXpSweeper extends MineSweeper {
             board[i][j] = this.getCell(image, i, j);
             if (board[i][j] == FLAG) ++mine;
         }
-        this.initGame(row, col, mine, false, null, GAME_RULE_WIN_XP);
+        this.initGame(row, col, mine, false, null, GAME_RULE_REAL_WIN_XP);
         this.playerBoard = board;
         this.state = this.getYellowFaceState(image);
     }
@@ -96,6 +97,7 @@ public class WinXpSweeper extends MineSweeper {
     @Override
     public int dig(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON1_MASK);
         return this.updateGameState();
     }
@@ -103,6 +105,7 @@ public class WinXpSweeper extends MineSweeper {
     @Override
     public int mark(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON3_MASK);
         return this.updateGameState();
     }
@@ -110,6 +113,7 @@ public class WinXpSweeper extends MineSweeper {
     @Override
     public int check(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON2_MASK);
         return this.updateGameState();
     }
@@ -266,11 +270,11 @@ public class WinXpSweeper extends MineSweeper {
 
     public static class WindowOccludedException extends RuntimeException {
         public WindowOccludedException() {
-            super("扫雷窗口可能被遮挡或移动!");
+            super("扫雷窗口可能被遮挡或关闭!");
         }
 
         public WindowOccludedException(BufferedImage image) {
-            super("扫雷窗口可能被遮挡! 问题截图 cap.png 已保存在当前目录.");
+            super("扫雷窗口可能被遮挡或关闭! 问题截图 cap.png 已保存在当前目录.");
             saveImage(image, "cap");
         }
     }

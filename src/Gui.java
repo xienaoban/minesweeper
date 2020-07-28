@@ -70,6 +70,7 @@ public class Gui extends JFrame {
         JCheckBoxMenuItem intermediateMenuItem  = new JCheckBoxMenuItem("中级", false);
         JCheckBoxMenuItem advancedMenuItem      = new JCheckBoxMenuItem("高级", false);
         JCheckBoxMenuItem customMenuItem        = new JCheckBoxMenuItem("自定义", false);
+        JCheckBoxMenuItem xpMenuItem            = new JCheckBoxMenuItem("套娃扫雷", false);
         JCheckBoxMenuItem gameRuleWinXpMenuItem = new JCheckBoxMenuItem("规则 Win XP", true);
         JCheckBoxMenuItem gameRuleWin7MenuItem  = new JCheckBoxMenuItem("规则 Win 7", false);
         JCheckBoxMenuItem allowQuestionMenuItem = new JCheckBoxMenuItem("问号标记", MineSweeper.getAllowQuestionMark());
@@ -80,6 +81,7 @@ public class Gui extends JFrame {
         gameMenu.add(intermediateMenuItem);
         gameMenu.add(advancedMenuItem);
         gameMenu.add(customMenuItem);
+        gameMenu.add(xpMenuItem);
         gameMenu.addSeparator();
         gameMenu.add(gameRuleWinXpMenuItem);
         gameMenu.add(gameRuleWin7MenuItem);
@@ -122,13 +124,22 @@ public class Gui extends JFrame {
         menuBar.add(aboutMenu);
 
         newGameMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_F2, 0));
-        newGameMenuItem.addActionListener(e -> initGame());
+        newGameMenuItem.addActionListener(e -> {
+            if (game.getGameRule() == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
+                try { initGame(new WinXpSweeper(true)); }
+                catch (WinXpSweeper.WindowOccludedException ex) {
+                    JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "winmine.exe 未启动或被遮挡", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            else initGame();
+        });
         beginnerMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_1, CTRL_MASK));
         beginnerMenuItem.addActionListener(e -> {
             beginnerMenuItem.setSelected(true);
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
+            xpMenuItem.setSelected(false);
             initGame(MineSweeper.DIFFICULTY_BEGINNER);
         });
         intermediateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_2, CTRL_MASK));
@@ -137,6 +148,7 @@ public class Gui extends JFrame {
             intermediateMenuItem.setSelected(true);
             advancedMenuItem.setSelected(false);
             customMenuItem.setSelected(false);
+            xpMenuItem.setSelected(false);
             initGame(MineSweeper.DIFFICULTY_INTERMEDIATE);
         });
         advancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_3, CTRL_MASK));
@@ -145,6 +157,7 @@ public class Gui extends JFrame {
             intermediateMenuItem.setSelected(false);
             advancedMenuItem.setSelected(true);
             customMenuItem.setSelected(false);
+            xpMenuItem.setSelected(false);
             initGame(MineSweeper.DIFFICULTY_EXPERT);
         });
         customMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_4, CTRL_MASK));
@@ -163,12 +176,28 @@ public class Gui extends JFrame {
                 intermediateMenuItem.setSelected(false);
                 advancedMenuItem.setSelected(false);
                 customMenuItem.setSelected(true);
+                xpMenuItem.setSelected(false);
                 initGame(r, c, m);
             }
             catch (NullPointerException ignored) {
             }
             catch (Exception ex) {
                 JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "格式或数字有误", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        xpMenuItem.addActionListener(e -> {
+            xpMenuItem.setSelected(!xpMenuItem.isSelected());
+            try {
+                MineSweeper game = new WinXpSweeper();
+                beginnerMenuItem.setSelected(false);
+                intermediateMenuItem.setSelected(false);
+                advancedMenuItem.setSelected(false);
+                customMenuItem.setSelected(false);
+                xpMenuItem.setSelected(true);
+                initGame(game);
+            }
+            catch (WinXpSweeper.WindowOccludedException ex) {
+                JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "winmine.exe 未启动或被遮挡", JOptionPane.ERROR_MESSAGE);
             }
         });
         gameRuleWinXpMenuItem.addActionListener(e -> {
@@ -351,7 +380,13 @@ public class Gui extends JFrame {
                 faceCanvas.setReverse(false);
                 if (e.getX() < 0 || e.getX() > faceCanvas.getWidth()) return;
                 if (e.getY() < 0 || e.getY() > faceCanvas.getHeight()) return;
-                initGame();
+                if (game.getGameRule() == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
+                    try { initGame(new WinXpSweeper(true)); }
+                    catch (WinXpSweeper.WindowOccludedException ex) {
+                        JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "winmine.exe 未启动或被遮挡", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+                else initGame();
             }
             @Override public void mouseEntered(MouseEvent e) {}
             @Override public void mouseExited(MouseEvent e) {}

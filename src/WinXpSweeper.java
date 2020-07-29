@@ -14,6 +14,8 @@ public class WinXpSweeper extends MineSweeper {
     private Robot robot;
     private Rectangle boardPosition;
 
+    private Point lastMouseLocation;
+
     public WinXpSweeper() { this.initXpGame(false); }
     public WinXpSweeper(boolean newRound) { this.initXpGame(newRound); }
 
@@ -26,7 +28,6 @@ public class WinXpSweeper extends MineSweeper {
             throw new RuntimeException("Robot 初始化失败.");
         }
         BufferedImage image = this.captureScreen();
-
         Point yellowFace = this.findYellowFace(image);
         if (yellowFace == null) throw new WindowOccludedException();
         Rectangle rect = this.boardPosition = this.findWindow(image, yellowFace);
@@ -89,7 +90,6 @@ public class WinXpSweeper extends MineSweeper {
     /**
      * 配合 quickDig()、quickFlag() 使用, 更新棋盘信息
      * quickDig()、quickFlag() 不会更新棋盘状态, 所以返回 void.
-     * 换句话说, 只有当 AI 确信游戏状态不会因本操作而改变时才会使用 quickDig()、quickFlag() 函数.
      */
     @Override
     public void lazyUpdate() { this.updateGameState(); }
@@ -97,24 +97,33 @@ public class WinXpSweeper extends MineSweeper {
     @Override
     public int dig(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.storeMousePosition();
+        this.captureBoard();
         this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON1_MASK);
+        this.restoreMousePosition();
         return this.updateGameState();
     }
 
     @Override
     public int mark(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.storeMousePosition();
+        this.captureBoard();
         this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON3_MASK);
+        this.restoreMousePosition();
         return this.updateGameState();
     }
 
     @Override
     public int check(int x, int y) {
         this.pointRangeCheck(x, y);
+        this.storeMousePosition();
+        this.captureBoard();
         this.activateWindow();
         this.mouseMoveAndClick(x, y, InputEvent.BUTTON2_MASK);
+        this.restoreMousePosition();
         return this.updateGameState();
     }
 
@@ -145,7 +154,11 @@ public class WinXpSweeper extends MineSweeper {
                 || image.getRGB(image.getWidth() - 1, image.getHeight() - 1) != -1
                 || image.getRGB(1, image.getHeight() - 1) != -1
                 || image.getRGB(0, image.getHeight() - 2) != -8355712) {
-            throw new WindowOccludedException();
+            image = this.captureScreen();
+            Point yellowFace = this.findYellowFace(image);
+            if (yellowFace == null) throw new WindowOccludedException();
+            Rectangle rect = this.boardPosition = this.findWindow(image, yellowFace);
+            image = image.getSubimage(rect.x, rect.y, rect.width, rect.height);
         }
         return image;
     }
@@ -165,6 +178,8 @@ public class WinXpSweeper extends MineSweeper {
         int height = image.getHeight();
         for (int i = 0; i < width; ++i) for (int j = 0; j < height; ++j) {
             if (image.getRGB(i, j) == -256
+                    && image.getRGB(i - 8, j) == -16777216 && image.getRGB(i, j - 8) == -16777216
+                    && image.getRGB(i + 8, j) == -16777216 && image.getRGB(i, j + 8) == -16777216
                     && image.getRGB(i - 7, j + 1) == -256 && image.getRGB(i, j - 7) == -256
                     && image.getRGB(i + 7, j + 1) == -256 && image.getRGB(i, j + 7) == -256) {
                 return new Point(i, j);
@@ -259,6 +274,14 @@ public class WinXpSweeper extends MineSweeper {
         this.robot.mouseRelease(InputEvent.BUTTON1_MASK);
     }
 
+    private void storeMousePosition() {
+        this.lastMouseLocation = MouseInfo.getPointerInfo().getLocation();
+    }
+
+    private void restoreMousePosition() {
+        this.robot.mouseMove(this.lastMouseLocation.x, this.lastMouseLocation.y);
+    }
+
     public static void saveImage(BufferedImage image, String filename) {
         try {
             ImageIO.write(image, "png", new File(filename + ".png"));
@@ -270,11 +293,11 @@ public class WinXpSweeper extends MineSweeper {
 
     public static class WindowOccludedException extends RuntimeException {
         public WindowOccludedException() {
-            super("扫雷窗口可能被遮挡或关闭!");
+            super("扫雷窗口可能被遮挡、移动或关闭!");
         }
 
         public WindowOccludedException(BufferedImage image) {
-            super("扫雷窗口可能被遮挡或关闭! 问题截图 cap.png 已保存在当前目录.");
+            super("扫雷窗口可能被遮挡、移动或关闭! 问题截图 cap.png 已保存在当前目录.");
             saveImage(image, "cap");
         }
     }

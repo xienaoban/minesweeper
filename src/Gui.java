@@ -195,6 +195,7 @@ public class Gui extends JFrame {
                 customMenuItem.setSelected(false);
                 xpMenuItem.setSelected(true);
                 initGame(game);
+                setFrameAfterOperation();
             }
             catch (WinXpSweeper.WindowOccludedException ex) {
                 JOptionPane.showMessageDialog(faceCanvas, ex.toString(), "winmine.exe 未启动或被遮挡", JOptionPane.ERROR_MESSAGE);

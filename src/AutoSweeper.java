@@ -228,8 +228,9 @@ public class AutoSweeper {
     public static void sweepToEnd(MineSweeper game) {
         if (game.getStep() == 0) {
             // Win7 的规则下第一步点击距离角落两格的点最好
-            if (game.getGameRule() == MineSweeper.GAME_RULE_WIN_7) game.dig(2, 2);
-            else game.dig(0, 0);
+            if (game.getGameRule() == MineSweeper.GAME_RULE_WIN_7) game.quickDig(2, 2);
+            else game.quickDig(0, 0);
+            game.lazyUpdate();
         }
         while (game.getGameState() == MineSweeper.PROCESS) {
             double[][] prob = sweepAllAdvanced(game);
@@ -257,7 +258,8 @@ public class AutoSweeper {
                 intensity = in;
             }
             // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
-            game.dig(maxX, maxY);
+            game.quickDig(maxX, maxY);
+            game.lazyUpdate();
         }
     }
 

@@ -133,9 +133,13 @@ public class Main {
             }
         }
         System.out.printf("执行次数: %d   游戏规则: %s   难度: %s", times,
-                gameRule == MineSweeper.GAME_RULE_WIN_XP ? "WinXP" : "Win7",
-                difficulty == MineSweeper.DIFFICULTY_BEGINNER ? "初级" : (
+                gameRule == MineSweeper.GAME_RULE_WIN_XP ? "WinXP" : (
+                    gameRule == MineSweeper.GAME_RULE_WIN_7 ? "Win7" : "WinXP (winmine.exe)"
+                ),
+                gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP ? "??" : (
+                    difficulty == MineSweeper.DIFFICULTY_BEGINNER ? "初级" : (
                         difficulty == MineSweeper.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
+                    )
                 )
         );
         System.out.println();

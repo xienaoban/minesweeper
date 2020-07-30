@@ -1,7 +1,7 @@
 import java.util.Scanner;
 
 public class Main {
-    private static final String VERSION = "0.7";
+    private static final String VERSION = "0.8";
     private static final boolean T = true, F = false;
 
     // 能够导致 AI 遍历连通分量时卡死的典型案例
@@ -171,14 +171,15 @@ public class Main {
         long startTime = System.currentTimeMillis();
         long winTime = 0;
         for (round = 1; round <= times; ++round) {
-            time = System.currentTimeMillis();
-//            game = new MineSweeper(badMineBoardExample);
-            if (gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
-                game = new WinXpSweeper(true);
+            long roundStartTime = time = System.currentTimeMillis();
+            try {
+                if (gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
+                    game = new WinXpSweeper(true);
+                }
+                else  game = new MineSweeper(difficulty, gameRule);
+//                game = new MineSweeper(badMineBoardExample);
+                AutoSweeper.sweepToEnd(game);
             }
-            else  game = new MineSweeper(difficulty, gameRule);
-            long roundStartTime = System.currentTimeMillis();
-            try { AutoSweeper.sweepToEnd(game); }
             catch (Exception e) {
                 e.printStackTrace();
                 times = round;
@@ -203,7 +204,7 @@ public class Main {
             System.out.printf("第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    \r",
                     round, (win ? "胜" : "负"),
                     (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
-                    (double)winCnt / (double)round * 100, winTime / (winCnt + 1), (roundEndTime - startTime) / round);
+                    (double)winCnt / (double)round * 100, winTime / Math.max(winCnt, 1), (roundEndTime - startTime) / round);
         }
         game = null;
         long totalTime = System.currentTimeMillis() - startTime;
@@ -212,7 +213,7 @@ public class Main {
         }
         System.out.print("                                                         \r");
         System.out.printf("运行局数: %d   胜率: %.2f%%   运行总耗时: %d秒   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒        ",
-                times, (double)winCnt / (double)times * 100, totalTime / 1000, winTime / (winCnt + 1), totalTime / times);
+                times, (double)winCnt / (double)times * 100, totalTime / 1000, winTime / Math.max(winCnt, 1), totalTime / times);
         System.out.println();
         System.out.println("探索程度统计: ");
         System.out.println("A 占比");

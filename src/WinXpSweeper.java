@@ -31,6 +31,7 @@ public class WinXpSweeper extends MineSweeper {
         Point yellowFace = this.findYellowFace(image);
         if (yellowFace == null) throw new WindowOccludedException();
         Rectangle rect = this.boardPosition = this.findWindow(image, yellowFace);
+        this.storeMousePosition();
         this.activateWindow();
         if (newRound) {
             this.robot.mouseMove(yellowFace.x, yellowFace.y);
@@ -40,6 +41,7 @@ public class WinXpSweeper extends MineSweeper {
             image = this.captureBoard();
         }
         else image = image.getSubimage(rect.x, rect.y, rect.width, rect.height);
+        this.restoreMousePosition();
 
         int row = (image.getHeight() - OFFSET_Y - OFFSET_X) / 16;
         int col = (image.getWidth() - 2 * OFFSET_X) / 16;
@@ -137,7 +139,7 @@ public class WinXpSweeper extends MineSweeper {
     }
 
     private int updateGameState() {
-        this.robot.delay(8);
+        this.robot.delay(this.row * this.col / 160 + 6);
         BufferedImage image = this.captureBoard();
         ++this.step;
         for (int i = 0; i < row; ++i) for (int j = 0; j < col; ++j) {

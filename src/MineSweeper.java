@@ -40,6 +40,9 @@ public class MineSweeper {
     protected int step;                                   // 执行了多少步数 (揭开、标旗、标问号等操作均算一步)
     protected static boolean allowQuestionMark = true;    // 右键时是否支持标记问号
 
+    /**
+     * 仅供子类使用
+     */
     protected MineSweeper() {}
 
     /**

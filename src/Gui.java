@@ -538,10 +538,11 @@ public class Gui extends JFrame {
             this.lastPlayerBoard = game.getPlayerBoard(true);
 
             List<Point> around = new ArrayList<>();
-            if (this.mouseLeft && this.mouseRight) {
+            if (this.mouseBoth && this.mouseLeft && this.mouseRight) {
                 around = game.getAround(this.mouseX, this.mouseY);
+                around.add(new Point(this.mouseX, this.mouseY));
             }
-            if ((this.mouseLeft) && game.isPointInRange(this.mouseX, this.mouseY)) {
+            if (!this.mouseBoth && this.mouseLeft && game.isPointInRange(this.mouseX, this.mouseY)) {
                 around.add(new Point(this.mouseX, this.mouseY));
             }
             for (Point p : around) {
@@ -708,6 +709,7 @@ public class Gui extends JFrame {
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) this.mouseLeft = true;
             else if (e.getButton() == MouseEvent.BUTTON3) this.mouseRight = true;
+            else if (e.getButton() == MouseEvent.BUTTON2) this.mouseLeft = this.mouseRight = this.mouseBoth = true;
             if (this.mouseLeft && this.mouseRight) this.mouseBoth = true;
             this.repaint();
         }
@@ -718,7 +720,9 @@ public class Gui extends JFrame {
             this.mouseY = this.posXToIdxY(e.getX());
             if (e.getButton() == MouseEvent.BUTTON1) {
                 this.mouseLeft = false;
-                if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
+                if (this.mouseBoth) {
+                    if (this.mouseRight) game.check(this.mouseX, this.mouseY);
+                }
                 else if (!this.mouseRight) {
                     game.dig(this.mouseX, this.mouseY);
                     if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
@@ -727,13 +731,19 @@ public class Gui extends JFrame {
             }
             else if (e.getButton() == MouseEvent.BUTTON3) {
                 this.mouseRight = false;
-                if (this.mouseBoth) game.check(this.mouseX, this.mouseY);
+                if (this.mouseBoth) {
+                    if (this.mouseLeft) game.check(this.mouseX, this.mouseY);
+                }
                 else if (!this.mouseLeft) {
                     game.mark(this.mouseX, this.mouseY);
                     setMineLabel();
                     if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                         timeThread.start();
                 }
+            }
+            else if (e.getButton() == MouseEvent.BUTTON2) {
+                this.mouseLeft = this.mouseRight = this.mouseBoth = false;
+                game.check(this.mouseX, this.mouseY);
             }
             if (!this.mouseLeft && !this.mouseRight) this.mouseBoth = false;
             setFrameAfterOperation();

@@ -4,9 +4,6 @@
  * 尤其是 负责展示棋盘的内部类 BoardCanvas, 一直想重构但是涉及的逻辑比较烦, 且远没有三个 Sweeper 类重要, 就一直没改.
  * 于是连注释都不想写了, 估计半年后包括我在内没有人看得懂了.
  */
-
-import javafx.util.Pair;
-
 import static java.awt.event.InputEvent.*;
 import static java.awt.event.KeyEvent.*;
 import javax.swing.*;
@@ -540,17 +537,16 @@ public class Gui extends JFrame {
             }
             this.lastPlayerBoard = game.getPlayerBoard(true);
 
-            List<Pair<Integer, Integer>> around = new ArrayList<>();
+            List<Point> around = new ArrayList<>();
             if (this.mouseLeft && this.mouseRight) {
                 around = game.getAround(this.mouseX, this.mouseY);
             }
             if ((this.mouseLeft) && game.isPointInRange(this.mouseX, this.mouseY)) {
-                around.add(new Pair<>(this.mouseX, this.mouseY));
+                around.add(new Point(this.mouseX, this.mouseY));
             }
-            for (Pair<Integer, Integer> xy : around) {
-                int x = xy.getKey(), y = xy.getValue();
-                this.drawCell(x, y, game.getPlayerBoard(x, y, true),true, g);
-                this.lastPlayerBoard[xy.getKey()][xy.getValue()] = 0x7fffffff;
+            for (Point p : around) {
+                this.drawCell(p.x, p.y, game.getPlayerBoard(p.x, p.y, true),true, g);
+                this.lastPlayerBoard[p.x][p.y] = 0x7fffffff;
             }
             gPanel.drawImage(this.buffer, 0, 0, this);
         }

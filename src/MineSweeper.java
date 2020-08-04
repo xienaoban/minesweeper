@@ -1,5 +1,6 @@
-import javafx.util.Pair;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 public class MineSweeper {
     // 游戏状态
@@ -11,6 +12,7 @@ public class MineSweeper {
     public static final int DIFFICULTY_BEGINNER     = 1001;
     public static final int DIFFICULTY_INTERMEDIATE = 1002;
     public static final int DIFFICULTY_EXPERT       = 1003;
+    public static final int DIFFICULTY_CUSTOM       = 1004;
 
     // 玩家视图中每个格子的状态
     public static final int UNCHECKED = 11;
@@ -334,22 +336,18 @@ public class MineSweeper {
             return this.endAndPublishMineBoard(LOSE);
         }
 
-        Queue<Pair<Integer, Integer>> queue = new LinkedList<>();
-        queue.offer(new Pair<>(x, y));
+        Queue<Point> queue = new LinkedList<>();
+        queue.offer(new Point(x, y));
         while (!queue.isEmpty()) {
-            Pair<Integer, Integer> point = queue.poll();
-            x = point.getKey();
-            y = point.getValue();
-            if (this.playerBoard[x][y] != UNCHECKED && this.playerBoard[x][y] != QUESTION) continue;
-            this.playerBoard[x][y] = this.calculateValue(x, y);
+            Point p = queue.poll();
+            if (this.playerBoard[p.x][p.y] != UNCHECKED && this.playerBoard[p.x][p.y] != QUESTION) continue;
+            this.playerBoard[p.x][p.y] = this.calculateValue(p.x, p.y);
             --this.coveredCellLeft;
-            if (this.playerBoard[x][y] != 0) continue;
+            if (this.playerBoard[p.x][p.y] != 0) continue;
 
-            for (Pair<Integer, Integer> p : this.getAround(x, y)) {
-                int px = p.getKey();
-                int py = p.getValue();
-                if (this.playerBoard[px][py] == UNCHECKED || this.playerBoard[px][py] == QUESTION) {
-                    queue.offer(new Pair<>(px, py));
+            for (Point pa : this.getAround(p.x, p.y)) {
+                if (this.playerBoard[pa.x][pa.y] == UNCHECKED || this.playerBoard[pa.x][pa.y] == QUESTION) {
+                    queue.offer(new Point(pa.x, pa.y));
                 }
             }
         }
@@ -367,33 +365,31 @@ public class MineSweeper {
         this.pointRangeCheck(x, y);
         if (this.state != PROCESS || this.playerBoard[x][y] > 8) return this.state;
 
-        List<Pair<Integer, Integer>> around = this.getAround(x, y);
+        List<Point> around = this.getAround(x, y);
 
         int flagCount = 0;
-        for (Pair<Integer, Integer> point : around) {
-            if (this.playerBoard[point.getKey()][point.getValue()] == FLAG) ++flagCount;
+        for (Point point : around) {
+            if (this.playerBoard[point.x][point.y] == FLAG) ++flagCount;
         }
         if (flagCount != this.playerBoard[x][y]) return this.state;
         this.recordLastPlayerBoard();
         ++this.step;
 
         boolean fail = false;
-        for (Pair<Integer, Integer> point : around) {
-            int px = point.getKey();
-            int py = point.getValue();
-            if ((this.playerBoard[px][py] == UNCHECKED || this.playerBoard[px][py] == QUESTION)
-                    && this.mineBoard[px][py]) {
+        for (Point p : around) {
+            if ((this.playerBoard[p.x][p.y] == UNCHECKED || this.playerBoard[p.x][p.y] == QUESTION)
+                    && this.mineBoard[p.x][p.y]) {
                 fail = true;
-                this.playerBoard[px][py] = RED_MINE;
+                this.playerBoard[p.x][p.y] = RED_MINE;
             }
-            else if (this.playerBoard[px][py] == FLAG && !this.mineBoard[px][py]) {
+            else if (this.playerBoard[p.x][p.y] == FLAG && !this.mineBoard[p.x][p.y]) {
                 fail = true;
-                this.playerBoard[px][py] = NOT_MINE;
+                this.playerBoard[p.x][p.y] = NOT_MINE;
             }
         }
         if (fail) return this.endAndPublishMineBoard(LOSE);
 
-        for (Pair<Integer, Integer> point : around) this.dig(point.getKey(), point.getValue());
+        for (Point point : around) this.dig(point.x, point.y);
         return this.state;
     }
 
@@ -484,21 +480,21 @@ public class MineSweeper {
      * @param y 目标格子的 y 坐标
      * @return 周围一圈的所有格子
      */
-    public List<Pair<Integer, Integer>> getAround(int x, int y) {
+    public List<Point> getAround(int x, int y) {
         this.pointRangeCheck(x, y);
-        List<Pair<Integer, Integer>> around = new ArrayList<>();
+        List<Point> around = new ArrayList<>();
         boolean up    = x - 1 >= 0;
         boolean down  = x + 1 < this.row;
         boolean left  = y - 1 >= 0;
         boolean right = y + 1 < this.col;
-        if (up && left)    around.add(new Pair<>(x - 1, y - 1));
-        if (up)            around.add(new Pair<>(x - 1, y    ));
-        if (up && right)   around.add(new Pair<>(x - 1, y + 1));
-        if (left)          around.add(new Pair<>(x    , y - 1));
-        if (right)         around.add(new Pair<>(x    , y + 1));
-        if (down && left)  around.add(new Pair<>(x + 1, y - 1));
-        if (down)          around.add(new Pair<>(x + 1, y    ));
-        if (down && right) around.add(new Pair<>(x + 1, y + 1));
+        if (up && left)    around.add(new Point(x - 1, y - 1));
+        if (up)            around.add(new Point(x - 1, y    ));
+        if (up && right)   around.add(new Point(x - 1, y + 1));
+        if (left)          around.add(new Point(x    , y - 1));
+        if (right)         around.add(new Point(x    , y + 1));
+        if (down && left)  around.add(new Point(x + 1, y - 1));
+        if (down)          around.add(new Point(x + 1, y    ));
+        if (down && right) around.add(new Point(x + 1, y + 1));
         return around;
     }
 

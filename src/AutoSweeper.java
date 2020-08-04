@@ -1,7 +1,9 @@
 import javafx.util.Pair;
 
+import java.awt.*;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.List;
 
 public class AutoSweeper {
     // AI 给出的三种判断
@@ -36,9 +38,9 @@ public class AutoSweeper {
     public static int checkOneUncoveredCell(MineSweeper game, int x, int y) {
         if (game.getPlayerBoard(x, y) > 8) return UNKNOWN;
         int uncheckedOrQuestion = 0, flag = 0;
-        List<Pair<Integer, Integer>> around = game.getAround(x, y);
-        for (Pair<Integer, Integer> p : around) {
-            switch (game.getPlayerBoard(p.getKey(), p.getValue())) {
+        List<Point> around = game.getAround(x, y);
+        for (Point p : around) {
+            switch (game.getPlayerBoard(p.x, p.y)) {
                 case MineSweeper.UNCHECKED:
                 case MineSweeper.QUESTION: ++uncheckedOrQuestion; break;
                 case MineSweeper.FLAG: ++flag; break;
@@ -59,30 +61,30 @@ public class AutoSweeper {
      * @param y2 第二个目标格子 y 坐标
      * @return 返回以 Pair 存储的两个值, key 和 value 分别为「可揭开的格子列表」与「可标雷的格子列表」
      */
-    public static Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> checkTwoUncoveredCell(
+    public static Pair<List<Point>, List<Point>> checkTwoUncoveredCell(
             MineSweeper game, int x1, int y1, int x2, int y2) {
         int num1 = game.getPlayerBoard(x1, y1), num2 = game.getPlayerBoard(x2, y2);
         if (num1 > 8 || num2 > 8) return null;
         int diffX = x2 - x1, diffY = y2 - y1;
         if (Math.abs(diffX) + Math.abs(diffY) != 1) return null;
-        List<Pair<Integer, Integer>> around1 = new ArrayList<>(3);
-        List<Pair<Integer, Integer>> around2 = new ArrayList<>(3);
+        List<Point> around1 = new ArrayList<>(3);
+        List<Point> around2 = new ArrayList<>(3);
         for (int i = -1; i < 2; ++i) {
             int xx1 = x1 - diffX + diffY * i, yy1 = y1 - diffY + diffX * i;
             if (game.isPointInRange(xx1, yy1)) {
                 int pp1 = game.getPlayerBoard(xx1, yy1);
                 if (pp1 == MineSweeper.FLAG) --num1;
-                else if (pp1 == MineSweeper.UNCHECKED || pp1 == MineSweeper.QUESTION) around1.add(new Pair<>(xx1, yy1));
+                else if (pp1 == MineSweeper.UNCHECKED || pp1 == MineSweeper.QUESTION) around1.add(new Point(xx1, yy1));
             }
 
             int xx2 = x2 + diffX + diffY * i, yy2 = y2 + diffY + diffX * i;
             if (game.isPointInRange(xx2, yy2)) {
                 int pp2 = game.getPlayerBoard(xx2, yy2);
                 if (pp2 == MineSweeper.FLAG) --num2;
-                else if (pp2 == MineSweeper.UNCHECKED || pp2 == MineSweeper.QUESTION) around2.add(new Pair<>(xx2, yy2));
+                else if (pp2 == MineSweeper.UNCHECKED || pp2 == MineSweeper.QUESTION) around2.add(new Point(xx2, yy2));
             }
         }
-        Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> res = null;
+        Pair<List<Point>, List<Point>> res = null;
         if (num2 - num1 - around2.size() == 0) res = new Pair<>(around1, around2);
         else if (num1 - num2 - around1.size() == 0) res = new Pair<>(around2, around1);
         return res;
@@ -100,12 +102,11 @@ public class AutoSweeper {
     public static int checkUncheckedCellBasic(MineSweeper game, int x, int y) {
         if (game.getPlayerBoard(x, y) != MineSweeper.UNCHECKED
                 && game.getPlayerBoard(x, y) != MineSweeper.QUESTION) return UNKNOWN;
-        List<Pair<Integer, Integer>> around = game.getAround(x, y);
-        for (Pair<Integer, Integer> p : around) {
-            int px = p.getKey(), py = p.getValue();
-            int pState = game.getPlayerBoard(px, py);
+        List<Point> around = game.getAround(x, y);
+        for (Point p : around) {
+            int pState = game.getPlayerBoard(p.x, p.y);
             if (pState < 9) {
-                int state = checkOneUncoveredCell(game, px, py);
+                int state = checkOneUncoveredCell(game, p.x, p.y);
                 if (state != UNKNOWN) return state;
             }
         }
@@ -121,26 +122,25 @@ public class AutoSweeper {
         for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
             int type = checkOneUncoveredCell(game, x, y);
             if (type != UNKNOWN) {
-                for (Pair<Integer, Integer> p : game.getAround(x, y)) {
-                    int px = p.getKey(), py = p.getValue();
-                    if (game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED
-                            && game.getPlayerBoard(px, py) != MineSweeper.QUESTION) continue;
-                    return new int[]{type, px, py};
+                for (Point p : game.getAround(x, y)) {
+                    if (game.getPlayerBoard(p.x, p.y) != MineSweeper.UNCHECKED
+                            && game.getPlayerBoard(p.x, p.y) != MineSweeper.QUESTION) continue;
+                    return new int[]{type, p.x, p.y};
                 }
             }
 
             for (int i = 0; i < 2; ++i) {
                 int x2 = x + i, y2 = y + 1 - i;
-                Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> _pair;
+                Pair<List<Point>, List<Point>> _pair;
                 try {
                     _pair = checkTwoUncoveredCell(game, x, y, x2, y2);
                 } catch (MineSweeper.PointOutOfBoundsException ignored) { continue; }
                 if (_pair != null) {
-                    for (Pair<Integer, Integer> p : _pair.getKey()) {
-                        return new int[]{NOT_MINE, p.getKey(), p.getValue()};
+                    for (Point p : _pair.getKey()) {
+                        return new int[]{NOT_MINE, p.x, p.y};
                     }
-                    for (Pair<Integer, Integer> p : _pair.getValue()) {
-                        return new int[]{MINE, p.getKey(), p.getValue()};
+                    for (Point p : _pair.getValue()) {
+                        return new int[]{MINE, p.x, p.y};
                     }
                 }
             }
@@ -161,12 +161,11 @@ public class AutoSweeper {
                 int type = checkOneUncoveredCell(game, x, y);
                 if (type != UNKNOWN) {
                     swept = true;
-                    for (Pair<Integer, Integer> p : game.getAround(x, y)) {
-                        int px = p.getKey(), py = p.getValue();
-                        if (game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED
-                                && game.getPlayerBoard(px, py) != MineSweeper.QUESTION) continue;
-                        if (type == MINE) game.quickFlag(px, py);
-                        else if (type == NOT_MINE) game.quickDig(px, py);
+                    for (Point p : game.getAround(x, y)) {
+                        if (game.getPlayerBoard(p.x, p.y) != MineSweeper.UNCHECKED
+                                && game.getPlayerBoard(p.x, p.y) != MineSweeper.QUESTION) continue;
+                        if (type == MINE) game.quickFlag(p.x, p.y);
+                        else if (type == NOT_MINE) game.quickDig(p.x, p.y);
                         if (game.getGameState() == MineSweeper.LOSE) return;
                     }
                 }
@@ -175,16 +174,16 @@ public class AutoSweeper {
                 for (int i = 0; i < 2; ++i) {
                     int x2 = x + i, y2 = y + 1 - i;
                     if (!game.isPointInRange(x2, y2)) continue;
-                    Pair<List<Pair<Integer, Integer>>, List<Pair<Integer, Integer>>> _pair
+                    Pair<List<Point>, List<Point>> _pair
                             = checkTwoUncoveredCell(game, x, y, x2, y2);
                     if (_pair != null) {
                         if (_pair.getKey().size() + _pair.getValue().size() > 0) swept = true;
-                        for (Pair<Integer, Integer> p : _pair.getKey()) {
-                            game.quickDig(p.getKey(), p.getValue());
+                        for (Point p : _pair.getKey()) {
+                            game.quickDig(p.x, p.y);
                             if (game.getGameState() == MineSweeper.LOSE) return;
                         }
-                        for (Pair<Integer, Integer> p : _pair.getValue()) {
-                            game.quickFlag(p.getKey(), p.getValue());
+                        for (Point p : _pair.getValue()) {
+                            game.quickFlag(p.x, p.y);
                         }
                     }
                 }
@@ -248,7 +247,7 @@ public class AutoSweeper {
                 if (maxX != -1 && prob[i][j] == prob[maxX][maxY]) {
                     // 同概率的话在角落的格子优先探测, 可以将概率从 29% 提升到 33%.
                     // 或者当两者都在 (或都不在) 角落时, 选择周围 24 格数字格子更多的.
-                    if ((cor == 2 && cor > corner) || (corner / 2 == cor / 2 && in > intensity)) newMax = true;
+                    if ((cor == 2 && cor > corner) || (in > intensity)) newMax = true;
                 }
                 else if (maxX == -1 || prob[i][j] < prob[maxX][maxY]) newMax = true;
                 if (!newMax) continue;
@@ -275,10 +274,10 @@ public class AutoSweeper {
      */
     public static boolean isUncoveredCellLegal(MineSweeper game, int[][] board, int x, int y) {
         if (board[x][y] > 8) return false;
-        List<Pair<Integer, Integer>> list = game.getAround(x, y);
+        List<Point> list = game.getAround(x, y);
         int mineCnt = 0, uncheckedCnt = 0;
-        for (Pair<Integer, Integer> p : list) {
-            switch (board[p.getKey()][p.getValue()]) {
+        for (Point p : list) {
+            switch (board[p.x][p.y]) {
                 case MineSweeper.FLAG:
                 case MineSweeper.MINE:
                 case MineSweeper.RED_MINE:
@@ -324,8 +323,8 @@ public class AutoSweeper {
      * @param game 一局游戏
      * @return Pair 的 key 储存所有分量的所有点, value 为整个图
      */
-    public static Pair<List<List<Pair<Integer, Integer>>>, int[][]> findAllConnectedComponents(MineSweeper game) {
-        List<List<Pair<Integer, Integer>>> ccList = new ArrayList<>();
+    public static Pair<List<List<Point>>, int[][]> findAllConnectedComponents(MineSweeper game) {
+        List<List<Point>> ccList = new ArrayList<>();
         int[][] ccGraph = new int[game.getRow()][game.getCol()];
         int id = 1;
         // 遍历每个点, 找到第一个可能属于一个连通分量的点, 并从该点扩散开来寻找其他属于该分量的点
@@ -333,27 +332,25 @@ public class AutoSweeper {
             if (ccGraph[i][j] != CC_UNKNOWN || game.getPlayerBoard(i, j) > 8) continue;
             // 找到了一个可能的点. 注意该点为已扫出数字的格子 (因为一个数字格子周围的未知格子必属于同一分量)
             // 该队列存储的点是已扫出数字的格子, 这些个数字格子周围的未知格子也必属于同一分量
-            Queue<Pair<Integer, Integer>> que = new LinkedList<>();
-            que.offer(new Pair<>(i, j));
-            List<Pair<Integer, Integer>> points = new ArrayList<>();
+            Queue<Point> que = new LinkedList<>();
+            que.offer(new Point(i, j));
+            List<Point> points = new ArrayList<>();
             boolean findANewComponent = false;
             // BFS 遍历周围的点, 搜出整个连通分量
             while (!que.isEmpty()) {
-                Pair<Integer, Integer> cur = que.poll();
-                int cx = cur.getKey(), cy = cur.getValue();
-                if (ccGraph[cx][cy] == CC_VISITED) continue;
-                ccGraph[cx][cy] = CC_VISITED;
+                Point cur = que.poll();
+                if (ccGraph[cur.x][cur.y] == CC_VISITED) continue;
+                ccGraph[cur.x][cur.y] = CC_VISITED;
                 // 遍历该数字格子周围的所有未知格子, 它们属于同一个分量
-                for (Pair<Integer, Integer> p : game.getAround(cx, cy)) {
-                    int px = p.getKey(), py = p.getValue();
-                    if ((game.getPlayerBoard(px, py) != MineSweeper.UNCHECKED && game.getPlayerBoard(px, py) != MineSweeper.QUESTION)
-                            || ccGraph[px][py] == id) continue;
+                for (Point p : game.getAround(cur.x, cur.y)) {
+                    if ((game.getPlayerBoard(p.x, p.y) != MineSweeper.UNCHECKED && game.getPlayerBoard(p.x, p.y) != MineSweeper.QUESTION)
+                            || ccGraph[p.x][p.y] == id) continue;
                     findANewComponent = true;
-                    points.add(new Pair<>(px, py));
-                    ccGraph[px][py] = id;
+                    points.add(new Point(p.x, p.y));
+                    ccGraph[p.x][p.y] = id;
                     // 找出「数字格子周围的未知格子」的周围的其余数字格子, 加入队列 (有点绕)
-                    for (Pair<Integer, Integer> p2 : game.getAround(px, py)) {
-                        if (game.getPlayerBoard(p2.getKey(), p2.getValue()) < 9) que.offer(p2);
+                    for (Point p2 : game.getAround(p.x, p.y)) {
+                        if (game.getPlayerBoard(p2.x, p2.y) < 9) que.offer(p2);
                     }
                 }
             }
@@ -373,13 +370,13 @@ public class AutoSweeper {
      */
     public static double[][] calculateAllProbabilities(MineSweeper game) {
         double[][] probGraph = new double[game.getRow()][game.getCol()];
-        Pair<List<List<Pair<Integer, Integer>>>, int[][]> _ccPair = findAllConnectedComponents(game);
-        List<List<Pair<Integer, Integer>>> ccList = _ccPair.getKey();
+        Pair<List<List<Point>>, int[][]> _ccPair = findAllConnectedComponents(game);
+        List<List<Point>> ccList = _ccPair.getKey();
         int[][] ccGraph = _ccPair.getValue();
         List<Map<Integer, int[]>> ccPermList = new ArrayList<>(ccList.size());
 
         // 计算每个连通分量的每个点的有雷概率
-        for (List<Pair<Integer, Integer>> points : ccList) {
+        for (List<Point> points : ccList) {
             Map<Integer, int[]> perm = new HashMap<>(16);
             backtrackAllPossiblePermutations(game, game.getPlayerBoard(), points,
                     perm, 0, 0); // 如果 permutationCnt 为 0, 说明玩家设的旗有错, 会异常
@@ -420,7 +417,7 @@ public class AutoSweeper {
      * @param curMine 当前有多少雷
      * @return 可行排列总数
      */
-    private static int backtrackAllPossiblePermutations(MineSweeper game, int[][] board, List<Pair<Integer, Integer>> points,
+    private static int backtrackAllPossiblePermutations(MineSweeper game, int[][] board, List<Point> points,
                                                         Map<Integer, int[]> ccPerm, int curIndex, int curMine) {
         // 成功找到一个可能的排列
         if (curIndex >= points.size()) {
@@ -431,25 +428,25 @@ public class AutoSweeper {
                 ccPerm.put(curMine, count);
             }
             for (int i = 0; i < points.size(); ++i) {
-                int px = points.get(i).getKey(), py = points.get(i).getValue();
-                if (board[px][py] == MineSweeper.MINE) ++count[i];
+                Point p = points.get(i);
+                if (board[p.x][p.y] == MineSweeper.MINE) ++count[i];
             }
             ++count[points.size()]; // 排列个数总数
             return 1;
         }
 
         // 分别递归考虑当前格子是雷、不是雷的情况
-        int x = points.get(curIndex).getKey(), y = points.get(curIndex).getValue();
+        Point cur = points.get(curIndex);
         int res = 0;
-        board[x][y] = MineSweeper.MINE;
-        if (curMine < game.getMineLeft() && isUncheckedCellLegal(game, board, x, y)) {
+        board[cur.x][cur.y] = MineSweeper.MINE;
+        if (curMine < game.getMineLeft() && isUncheckedCellLegal(game, board, cur.x, cur.y)) {
             res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine + 1);
         }
-        board[x][y] = MineSweeper.NOT_MINE;
-        if (isUncheckedCellLegal(game, board, x, y)) {
+        board[cur.x][cur.y] = MineSweeper.NOT_MINE;
+        if (isUncheckedCellLegal(game, board, cur.x, cur.y)) {
             res += backtrackAllPossiblePermutations(game, board, points, ccPerm, curIndex + 1, curMine);
         }
-        board[x][y] = MineSweeper.UNCHECKED;
+        board[cur.x][cur.y] = MineSweeper.UNCHECKED;
         return res;
     }
 
@@ -462,11 +459,11 @@ public class AutoSweeper {
      * @return 所有分量平均雷数
      */
     private static double calculateProbabilitiesOfAllConnectedComponents(MineSweeper game,
-                                                                         List<List<Pair<Integer, Integer>>> ccList,
+                                                                         List<List<Point>> ccList,
                                                                          List<Map<Integer, int[]>> ccPermList,
                                                                          double[][] probGraph) {
         int notInCC = game.getUncheckedCellLeft();
-        for (List<Pair<Integer, Integer>> cc : ccList) {
+        for (List<Point> cc : ccList) {
             notInCC -= cc.size();
         }
         final int maxMineCnt = game.getMineLeft();
@@ -494,7 +491,7 @@ public class AutoSweeper {
         // 计算在不同雷数下的所有可能组合, 并与 allPermCnt 得到概率
         Map<Integer, Integer> right = outOfRange; // 与 stack 的 top 对应 (即下面代码里的 left 变量)
         for (int i = ccList.size() - 1; i >= 0; --i) { // 遍历每个连通分量 (遍历方向与 stack 相反)
-            List<Pair<Integer, Integer>> ccPoints = ccList.get(i); // 该分量的所有格子坐标
+            List<Point> ccPoints = ccList.get(i); // 该分量的所有格子坐标
             Map<Integer, int[]> ccPerms = ccPermList.get(i);       // 该连通分量的不同雷数 (key) 情况下的排列 (value)
 
             Map<Integer, Integer> left = stack.removeFirst();
@@ -511,16 +508,23 @@ public class AutoSweeper {
                             .multiply(getNumOfCasesForGivenCellsAndMines(notInCC, maxMineCnt - mineCnt)));
                 }
                 for (int j = 0; j < ccPoints.size(); ++j) {
-                    int px = ccPoints.get(j).getKey(), py = ccPoints.get(j).getValue();
+                    Point p = ccPoints.get(j);
                     double prob = new BigDecimal(cur.getValue()[j]).multiply(curPermCnt)
                             .divide(allPermCnt, 6, BigDecimal.ROUND_HALF_UP).doubleValue();
-                    probGraph[px][py] += prob;
+                    probGraph[p.x][p.y] += prob;
                     avgPermMineCnt += prob;
                 }
             }
 
         }
         return avgPermMineCnt;
+    }
+
+    private static double[][] calculateAvgNumOfCells(MineSweeper game, int[][] board, int mineLeft) {
+        double[][] avgNum = new double[game.getRow()][game.getCol()];
+        for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
+        }
+        return avgNum;
     }
 
     /**
@@ -582,9 +586,8 @@ public class AutoSweeper {
      */
     private static boolean isUncheckedCellLegal(MineSweeper game, int[][] board, int x, int y) {
         if (board[x][y] < 9) return false;
-        for (Pair<Integer, Integer> p : game.getAround(x, y)) {
-            int px = p.getKey(), py = p.getValue();
-            if (board[px][py] < 9 && !isUncoveredCellLegal(game, board, px, py)) return false;
+        for (Point p : game.getAround(x, y)) {
+            if (board[p.x][p.y] < 9 && !isUncoveredCellLegal(game, board, p.x, p.y)) return false;
         }
         return true;
     }

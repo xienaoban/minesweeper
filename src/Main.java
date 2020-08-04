@@ -87,6 +87,7 @@ public class Main {
      * @param args 执行参数
      */
     private static void testAI(String[] args) {
+        // 从命令行获取参数
         int times = 10000, difficulty = MineSweeper.DIFFICULTY_EXPERT, gameRule = MineSweeper.GAME_RULE_WIN_XP;
         for (int i = 1; i < args.length; i += 2) {
             String nextArg = i + 1 < args.length ? args[i + 1] : "";
@@ -121,9 +122,13 @@ public class Main {
                     }
                     break;
                 case "-h": case "--help":
-                    System.out.println("--times         -t 测试的局数, 默认 10000 次.");
-                    System.out.println("--rule          -r 测试的游戏规则, xp 或 7 或 XP (操作真实 XP 扫雷), 默认 xp.");
-                    System.out.println("--difficulty    -d 测试的游戏难度, 初级 (beg, 1), 中级(int, 2), 高级 (exp, 3).");
+                    System.out.println("--times        -t  测试的局数, 默认 10000 次.");
+                    System.out.println("--rule         -r  测试的游戏规则, xp 或 7 或 XP, 默认 xp.");
+                    System.out.println("                   xp 为模拟 WinXP 扫雷的规则, 运行速度快;");
+                    System.out.println("                   XP 直接截屏并鼠标操作 winmine.exe, 运行速度慢;");
+                    System.out.println("                   7  为模拟 Win7 扫雷的规则, 运行速度快.");
+                    System.out.println("--difficulty   -d  测试的游戏难度, 初级 (beg, 1), 中级 (int, 2), 高级 (exp, 3).");
+                    System.out.println("                   当 rule 为 XP 时该参数不起作用.");
                     return;
                 default: error = true;
             }
@@ -132,11 +137,26 @@ public class Main {
                 return;
             }
         }
+        if (gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP) {
+            WinXpSweeper tmp = new WinXpSweeper();
+            if (tmp.getRow() == 16 && tmp.getCol() == 30 && tmp.getMineCount() == 99) {
+                difficulty = WinXpSweeper.DIFFICULTY_EXPERT;
+            }
+            else if (tmp.getRow() == 16 && tmp.getCol() == 16 && tmp.getMineCount() == 40) {
+                difficulty = WinXpSweeper.DIFFICULTY_INTERMEDIATE;
+            }
+            else if (tmp.getRow() == 9 && tmp.getCol() == 9 && tmp.getMineCount() == 10) {
+                difficulty = WinXpSweeper.DIFFICULTY_BEGINNER;
+            }
+            else difficulty = WinXpSweeper.DIFFICULTY_CUSTOM;
+        }
+
+        // 输出参数
         System.out.printf("执行次数: %d   游戏规则: %s   难度: %s", times,
                 gameRule == MineSweeper.GAME_RULE_WIN_XP ? "WinXP" : (
                     gameRule == MineSweeper.GAME_RULE_WIN_7 ? "Win7" : "WinXP (winmine.exe)"
                 ),
-                gameRule == WinXpSweeper.GAME_RULE_REAL_WIN_XP ? "??" : (
+                difficulty == WinXpSweeper.DIFFICULTY_CUSTOM ? "??" : (
                     difficulty == MineSweeper.DIFFICULTY_BEGINNER ? "初级" : (
                         difficulty == MineSweeper.DIFFICULTY_INTERMEDIATE ? "中级" : "高级"
                     )
@@ -144,6 +164,7 @@ public class Main {
         );
         System.out.println();
 
+        //开始运算
         int winCnt = 0;
         int[] exploreRateView = new int[11];
         // 如果遇到连通分量特别长导致运算时间很久, 每隔2秒输出一次
@@ -156,7 +177,7 @@ public class Main {
                         long diff = System.currentTimeMillis() - time;
                         if (diff > 3000) {
                             System.out.println();
-                            System.out.println("第 " + round + " 局耗时超预期, 可能是连通分量太长. 当前步数: "
+                            System.out.println("第 " + round + " 局耗时超预期, 可能是因为连通分量太长. 当前步数: "
                                     + game.getStep() + ". 当前连通分量: ");
                             AutoSweeper.printConnectedComponent(AutoSweeper.findAllConnectedComponents(game).getValue());
                             time = System.currentTimeMillis();
@@ -169,6 +190,7 @@ public class Main {
         };
         th.start();
         long startTime = System.currentTimeMillis();
+        long printTime = startTime;
         long winTime = 0;
         for (round = 1; round <= times; ++round) {
             long roundStartTime = time = System.currentTimeMillis();
@@ -201,10 +223,15 @@ public class Main {
                 exploreRate = 100 * explored / (game.getRow() * game.getCol());
             }
             ++exploreRateView[exploreRate / 10];
-            System.out.printf("第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    \r",
-                    round, (win ? "胜" : "负"),
-                    (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
-                    (double)winCnt / (double)round * 100, winTime / Math.max(winCnt, 1), (roundEndTime - startTime) / round);
+            if (roundEndTime - printTime > 120) {
+                printTime = roundEndTime;
+                System.out.printf(
+                        "第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    \r",
+                        round, (win ? "胜" : "负"),
+                        (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
+                        (double) winCnt / (double) round * 100, winTime / Math.max(winCnt, 1),
+                        (roundEndTime - startTime) / round);
+            }
         }
         game = null;
         long totalTime = System.currentTimeMillis() - startTime;

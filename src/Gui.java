@@ -112,8 +112,10 @@ public class Gui extends JFrame {
         aiMenu.add(sweepToEndMenuItem);
         aiMenu.add(aiDebugMenuItem);
 
-        JMenuItem aboutMenuItem         = new JMenuItem("作者: 蟹恼板");
-        aboutMenu.add(aboutMenuItem);
+        JMenuItem versionMenuItem         = new JMenuItem("版本: " + Main.VERSION);
+        JMenuItem authorMenuItem         = new JMenuItem("作者: 蟹恼板");
+        aboutMenu.add(versionMenuItem);
+        aboutMenu.add(authorMenuItem);
 
         menuBar.add(gameMenu);
         menuBar.add(cheatMenu);
@@ -337,7 +339,14 @@ public class Gui extends JFrame {
             canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
-        aboutMenuItem.addActionListener(e -> {
+        versionMenuItem.addActionListener(e -> {
+            try {
+                Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban/Minesweeper"));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(faceCanvas, "浏览器打开失败，请手动访问 https://github.com/XieNaoban/Minesweeper 。", "错误",JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        authorMenuItem.addActionListener(e -> {
             try {
                 Desktop.getDesktop().browse(java.net.URI.create("https://github.com/XieNaoban"));
             } catch (Exception ex) {

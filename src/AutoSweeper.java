@@ -256,6 +256,39 @@ public class AutoSweeper {
                 corner = cor;
                 intensity = in;
             }
+
+            // 针对同概率的候选格子计算平均可确定格子数
+            final int MAX_CANDIDATES = 16;
+            List<Point> candidates = new ArrayList<>(MAX_CANDIDATES + 1);
+            for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                if (prob[i][j] != prob[maxX][maxY]) continue;
+                candidates.add(new Point(i, j));
+                if (candidates.size() > MAX_CANDIDATES) break;
+            }
+            double maxAvgSafe = 0;
+            if (candidates.size() <= MAX_CANDIDATES) {
+                int[][] board = game.getPlayerBoard();
+                int[][] ccGraph = findAllConnectedComponents(game).getValue();
+                int _maxX = maxX, _maxY = maxY;
+                boolean adoptThisStrategy = true;
+                for (Point p : candidates) {
+                    double num = AutoSweeper.calculateAvgNumOfSafeCells(game, p.x, p.y, board, ccGraph, prob);
+                    if (num < 0) {
+                        adoptThisStrategy = false;
+                        break;
+                    }
+                    if (num > maxAvgSafe) {
+                        maxAvgSafe = num;
+                        _maxX = p.x;
+                        _maxY = p.y;
+                    }
+                }
+                if (adoptThisStrategy) {
+                    maxX = _maxX;
+                    maxY = _maxY;
+                }
+            }
+
             // 只找 prob 低的 uncover, 不找 prob 高的 setFlag, 因为 setFlag 不影响游戏状态, 标错了也不知道.
             game.quickDig(maxX, maxY);
             game.lazyUpdate();
@@ -365,6 +398,7 @@ public class AutoSweeper {
 
     /**
      * 计算每个格子有雷的概率 (默认当前每个旗子设的都是对的, 懒得自检了)
+     * 注意: 返回的是格子为雷的概率, 则非雷概率为 1 - p.
      * @param game 一局游戏
      * @return 每个格子的有雷概率
      */
@@ -520,12 +554,74 @@ public class AutoSweeper {
         return avgPermMineCnt;
     }
 
-    private static double[][] calculateAvgNumOfCells(MineSweeper game, int[][] board, int mineLeft) {
-        double[][] avgNum = new double[game.getRow()][game.getCol()];
-        for (int x = 0; x < game.getRow(); ++x) for (int y = 0; y < game.getCol(); ++y) {
+    /**
+     * 如果假定一个未知格子为数字格子, 那么当该格子为 0~8 的数字时, 当前局面有哪些格子可以因此也被确定是安全的 (必不为雷).
+     * 计算 0~8 所有情况下平均能确定多少个雷. 该策略效果没那么明显 (低于 1%), 且涉及连通分量的遍历计算, 十分耗时.
+     * 所以优化了一下, 如果待计算的连通分量长度大于 16, 就返回 -1, 以表罢工. 最终结果是提升了 0.5% ~ 0.9%, 平均每局耗时增加了 2ms.
+     * @param game 一局游戏
+     * @param x 待测格子 x 坐标 (请确保该格子为未知格子或问号格子)
+     * @param y 待测格子 y 坐标 (请确保该格子为未知格子或问号格子)
+     * @param board 玩家面板
+     * @param ccGraph 连通分量图
+     * @param prob 概率图
+     * @return 确定待测格子后平均能确定多少其他未知格子
+     */
+    public static double calculateAvgNumOfSafeCells(MineSweeper game, int x, int y, int[][] board, int[][] ccGraph, double[][] prob) {
+        // 假设当前格子不是雷, 计算该格子所涉及的连通分量
+        List<Point> newCcPoints = new ArrayList<>();
+        Set<Integer> ccSet = new HashSet<>(8);
+        boolean[][] vis = new boolean[game.getRow()][game.getCol()];
+        vis[x][y] = true;
+        for (Point p : game.getAround(x, y)) { // 周围一圈的未知格子都属于该分量
+            if (board[p.x][p.y] == MineSweeper.UNCHECKED || board[p.x][p.y] == MineSweeper.QUESTION) {
+                vis[p.x][p.y] = true;
+                newCcPoints.add(p);
+                if (ccGraph[p.x][p.y] > 0) ccSet.add(ccGraph[p.x][p.y]);
+            }
         }
-        return avgNum;
+        for (int i = 0; i < newCcPoints.size(); ++i) { // 周围一圈格子所涉及的连通分量也都属于该新分量
+            Point p = newCcPoints.get(i);
+            for (Point pa : game.getAround(p.x, p.y)) {
+                if (!vis[pa.x][pa.y] && ccSet.contains(ccGraph[pa.x][pa.y])) {
+                    vis[pa.x][pa.y] = true;
+                    newCcPoints.add(pa);
+                }
+            }
+        }
+        // 连通分量太长的不算, 不然太耗时
+        if (newCcPoints.size() > 16) return -1;
+
+        // 根据新连通分量, 计算: 当目标格子为 0~8 时, 后续可以确定多少个格子必为非雷
+        // (只统计必非雷的格子, 没统计必为雷的格子, 因为标雷对棋局没什么实质性帮助)
+        int alwaysSafe = 0, allPermCnt = 0;
+        for (int num = 0; num <= 8; ++num) {
+            board[x][y] = num;
+            Map<Integer, int[]> perm = new HashMap<>(16);
+            backtrackAllPossiblePermutations(game, board, newCcPoints, perm, 0, 0);
+            int[] allCount = new int[newCcPoints.size() + 1];
+            for (int[] v : perm.values()) {
+                for (int i = 0; i < allCount.length; ++i) {
+                    allCount[i] += v[i];
+                }
+            }
+            final int permCnt = allCount[newCcPoints.size()];
+            allPermCnt += permCnt;
+            for (int mineCnt : allCount) {
+                if (mineCnt == 0) alwaysSafe += permCnt;
+            }
+        }
+        board[x][y] = MineSweeper.UNCHECKED;
+
+        // 计算: 当当前格不为雷时, 则挖开该格子后, 局面上平均有多少格未知格子因此被确定不是雷
+        return (double) alwaysSafe / allPermCnt;
     }
+
+    private static double[][] calculateAllWinRate(MineSweeper game, int[][] board) {
+        double[][] winRate = new double[game.getRow()][game.getCol()];
+
+        return winRate;
+    }
+
 
     /**
      * 综合考虑两个连通分量 (或包含多个分量的分量集合), 计算在不同雷数情况下有多少种可能性

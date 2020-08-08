@@ -175,7 +175,7 @@ public class Main {
                         Thread.sleep(1000);
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
-                        if (diff > 3000) {
+                        if (diff > 5000) {
                             System.out.println();
                             System.out.println("第 " + round + " 局耗时超预期, 可能是因为连通分量太长. 当前步数: "
                                     + game.getStep() + ". 当前连通分量: ");

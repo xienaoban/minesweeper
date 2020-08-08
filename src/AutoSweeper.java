@@ -260,19 +260,21 @@ public class AutoSweeper {
             // 针对同概率的候选格子计算平均可确定格子数
             final int MAX_CANDIDATES = 16;
             List<Point> candidates = new ArrayList<>(MAX_CANDIDATES + 1);
+            candidates.add(new Point(maxX, maxY));
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+                if (i == maxX && j == maxY) continue;
                 if (prob[i][j] != prob[maxX][maxY]) continue;
                 candidates.add(new Point(i, j));
                 if (candidates.size() > MAX_CANDIDATES) break;
             }
-            double maxAvgSafe = 0;
             if (candidates.size() <= MAX_CANDIDATES) {
                 int[][] board = game.getPlayerBoard();
                 int[][] ccGraph = findAllConnectedComponents(game).getValue();
+                double maxAvgSafe = 0;
                 int _maxX = maxX, _maxY = maxY;
                 boolean adoptThisStrategy = true;
                 for (Point p : candidates) {
-                    double num = AutoSweeper.calculateAvgNumOfSafeCells(game, p.x, p.y, board, ccGraph, prob);
+                    double num = calculateAvgNumOfSafeCells(game, p.x, p.y, board, ccGraph, prob);
                     if (num < 0) {
                         adoptThisStrategy = false;
                         break;
@@ -566,7 +568,7 @@ public class AutoSweeper {
      * @param prob 概率图
      * @return 确定待测格子后平均能确定多少其他未知格子
      */
-    public static double calculateAvgNumOfSafeCells(MineSweeper game, int x, int y, int[][] board, int[][] ccGraph, double[][] prob) {
+    private static double calculateAvgNumOfSafeCells(MineSweeper game, int x, int y, int[][] board, int[][] ccGraph, double[][] prob) {
         // 假设当前格子不是雷, 计算该格子所涉及的连通分量
         List<Point> newCcPoints = new ArrayList<>();
         Set<Integer> ccSet = new HashSet<>(8);
@@ -605,6 +607,7 @@ public class AutoSweeper {
                 }
             }
             final int permCnt = allCount[newCcPoints.size()];
+            if (permCnt == 0) continue;
             allPermCnt += permCnt;
             for (int mineCnt : allCount) {
                 if (mineCnt == 0) alwaysSafe += permCnt;

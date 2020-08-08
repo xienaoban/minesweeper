@@ -1,0 +1,8 @@
+n n n n n n n n 
+n n n n n n F F 
+n n n n n n n * 
+n n n n n F n . 
+n n n n n n * . 
+n n n n n n . * 
+n n n n n F F n 
+n n n n n n n n 

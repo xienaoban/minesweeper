@@ -89,28 +89,32 @@ public class Gui extends JFrame {
         JCheckBoxMenuItem cheatMenuItem         = new JCheckBoxMenuItem("启用作弊");
         JMenuItem         undoMenuItem          = new JMenuItem("撤销操作");
         JMenuItem         mineMenuItem          = new JMenuItem("启用透视");
-        JMenuItem         customMineMenuItem    = new JMenuItem("导入棋盘");
+        JMenuItem         loadMineMenuItem      = new JMenuItem("导入棋盘");
+        JMenuItem         saveMineMenuItem      = new JMenuItem("保存棋盘");
         cheatMenuItem.setText((cheat? "关闭" : "启用") + "作弊");
         undoMenuItem.setEnabled(cheat);
         mineMenuItem.setEnabled(cheat);
-        customMineMenuItem.setEnabled(cheat);
+        loadMineMenuItem.setEnabled(cheat);
+        saveMineMenuItem.setEnabled(cheat);
         cheatMenu.add(cheatMenuItem);
         cheatMenu.addSeparator();
         cheatMenu.add(undoMenuItem);
         cheatMenu.add(mineMenuItem);
-        cheatMenu.add(customMineMenuItem);
+        cheatMenu.add(loadMineMenuItem);
+        cheatMenu.add(saveMineMenuItem);
 
 
-        JMenuItem checkBasicMenuItem = new JMenuItem("提示一格（快）");
-        JMenuItem sweepBasicMenuItem = new JMenuItem("自动清扫（快）");
+        JMenuItem checkBasicMenuItem    = new JMenuItem("提示一格（快）");
+        JMenuItem aiDebugMenuItem       = new JMenuItem("显示概率（慢）");
+        JMenuItem sweepBasicMenuItem    = new JMenuItem("自动清扫（快）");
         JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（慢）");
-        JMenuItem sweepToEndMenuItem = new JMenuItem("扫到结束（慢）");
-        JMenuItem aiDebugMenuItem = new JMenuItem("显示概率（慢）");
+        JMenuItem sweepToEndMenuItem    = new JMenuItem("扫到结束（慢）");
         aiMenu.add(checkBasicMenuItem);
+        aiMenu.add(aiDebugMenuItem);
+        aiMenu.addSeparator();
         aiMenu.add(sweepBasicMenuItem);
         aiMenu.add(sweepAdvancedMenuItem);
         aiMenu.add(sweepToEndMenuItem);
-        aiMenu.add(aiDebugMenuItem);
 
         JMenuItem versionMenuItem         = new JMenuItem("版本: " + Main.VERSION);
         JMenuItem authorMenuItem         = new JMenuItem("作者: 蟹恼板");
@@ -239,7 +243,8 @@ public class Gui extends JFrame {
             if (!cheat) showMine = false;
             undoMenuItem.setEnabled(cheat);
             mineMenuItem.setEnabled(cheat);
-            customMineMenuItem.setEnabled(cheat);
+            loadMineMenuItem.setEnabled(cheat);
+            saveMineMenuItem.setEnabled(cheat);
             initGame();
         });
         undoMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, CTRL_MASK));
@@ -254,40 +259,47 @@ public class Gui extends JFrame {
                 canvas.repaint();
             }
         });
-        customMineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_N, CTRL_MASK));
-        customMineMenuItem.addActionListener(e -> {
+        loadMineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_N, CTRL_MASK));
+        loadMineMenuItem.addActionListener(e -> {
             JFileChooser jfc = new JFileChooser(lastMineBoardDirectory);
             jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            int openState = jfc.showDialog(faceCanvas, "选择");
+            int openState = jfc.showOpenDialog(faceCanvas);
             if (openState == JFileChooser.CANCEL_OPTION) return;
             File file = jfc.getSelectedFile();
             lastMineBoardDirectory = file.getParent();
             try {
-                FileReader fileReader = new FileReader(file);
-                BufferedReader bufferedReader = new BufferedReader(fileReader);
-                List<String> lineList = new ArrayList<>();
-                String line = bufferedReader.readLine();
-                while (line != null && !line.equals("")) {
-                    lineList.add(line.replaceAll(" ", ""));
-                    line = bufferedReader.readLine();
-                }
-                bufferedReader.close();
-                fileReader.close();
-                boolean[][] mineBoard = new boolean[lineList.size()][lineList.get(0).length()];
-                for (int i = 0; i < lineList.size(); ++i) {
-                    line = lineList.get(i);
-                    for (int j = 0; j < lineList.get(0).length(); ++j) {
-                        mineBoard[i][j] = line.charAt(j) == '*';
-                    }
-                }
+                MineSweeper game = new MineSweeper(file);
                 beginnerMenuItem.setSelected(false);
                 intermediateMenuItem.setSelected(false);
                 advancedMenuItem.setSelected(false);
                 customMenuItem.setSelected(true);
-                initGame(new MineSweeper(mineBoard));
+                xpMenuItem.setSelected(false);
+                initGame(game);
             } catch (Exception exception) {
                 JOptionPane.showMessageDialog(faceCanvas, exception.getMessage(),
                         "文件读取错误", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        saveMineMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_S, CTRL_MASK));
+        saveMineMenuItem.addActionListener(e -> {
+            JFileChooser jfc = new JFileChooser(lastMineBoardDirectory);
+            jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//            jfc.setDialogTitle("保存文件");
+            int openState = jfc.showSaveDialog(faceCanvas);
+            if (openState == JFileChooser.CANCEL_OPTION) return;
+            File file = jfc.getSelectedFile();
+            lastMineBoardDirectory = file.getParent();
+            try {
+                game.saveGameToFile(file);
+                beginnerMenuItem.setSelected(false);
+                intermediateMenuItem.setSelected(false);
+                advancedMenuItem.setSelected(false);
+                customMenuItem.setSelected(true);
+                xpMenuItem.setSelected(false);
+            } catch (Exception exception) {
+                JOptionPane.showMessageDialog(faceCanvas, exception.getMessage(),
+                        "文件写入错误", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -306,6 +318,13 @@ public class Gui extends JFrame {
             } catch (InterruptedException ex) {
                 ex.printStackTrace();
             }
+        }).start());
+
+        aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
+        aiDebugMenuItem.addActionListener(e -> new Thread(() -> {
+            int[][] cc = AutoSweeper.findAllConnectedComponents(game).getValue();
+            double[][] prob = AutoSweeper.calculateAllProbabilities(game);
+            canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
         sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
@@ -330,13 +349,6 @@ public class Gui extends JFrame {
             AutoSweeper.sweepToEnd(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
-        }).start());
-
-        aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
-        aiDebugMenuItem.addActionListener(e -> new Thread(() -> {
-            int[][] cc = AutoSweeper.findAllConnectedComponents(game).getValue();
-            double[][] prob = AutoSweeper.calculateAllProbabilities(game);
-            canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
         versionMenuItem.addActionListener(e -> {

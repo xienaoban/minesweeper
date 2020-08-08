@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 
@@ -27,6 +28,15 @@ public class MineSweeper {
     public static final int GAME_RULE_WIN_XP = 20011025;
     public static final int GAME_RULE_WIN_7  = 20091022;
     public static final int GAME_RULE_UNKNOWN  = 20200101;
+
+    // 用于文件读写时的标记
+    private static final char CHAR_NUM = 'n';
+    private static final char CHAR_MINE = '*';
+    private static final char CHAR_UNCHECKED = '.';
+    private static final char CHAR_QUESTION_ON_NUM = '?';
+    private static final char CHAR_QUESTION_ON_MINE = '!';
+    private static final char CHAR_FLAG = 'F';
+    private static final char CHAR_WRONG_FLAG = 'X';
 
     // 游戏内部变量
     protected int state;                                  // 游戏状态 (胜/负/进行中)
@@ -146,6 +156,15 @@ public class MineSweeper {
     }
 
     /**
+     * 从文件读取棋局 (支持新局或残局)
+     * @param file 文件
+     * @throws IOException 读文件可能出问题
+     */
+    public MineSweeper(File file) throws IOException {
+        this.loadGameFromFile(file);
+    }
+
+    /**
      * 所有构造函数调用的初始化方法
      * @param row 行数
      * @param col 列数
@@ -194,6 +213,83 @@ public class MineSweeper {
             this.mineBoard[px][py] = true;
             if (--mine <= 0) break;
         }
+    }
+
+    /**
+     * 读取残局到游戏
+     * @param file 文件
+     * @throws IOException 读文件可能出错
+     */
+    private void loadGameFromFile(File file) throws IOException {
+        FileReader fileReader = new FileReader(file);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        List<String> lineList = new ArrayList<>();
+        String line = bufferedReader.readLine();
+        while (line != null && !line.equals("")) {
+            lineList.add(line.replaceAll(" ", ""));
+            line = bufferedReader.readLine();
+        }
+        bufferedReader.close();
+        fileReader.close();
+        int row = lineList.size(), col = lineList.get(0).length(), mine = 0;
+        boolean[][] mineBoard = new boolean[row][col];
+        for (int i = 0; i < lineList.size(); ++i) {
+            line = lineList.get(i);
+            for (int j = 0; j < lineList.get(0).length(); ++j) {
+                if (line.charAt(j) == CHAR_MINE || line.charAt(j) == CHAR_FLAG
+                        || line.charAt(j) == CHAR_QUESTION_ON_MINE) {
+                    mineBoard[i][j] = true;
+                    ++mine;
+                }
+            }
+        }
+        this.initGame(row, col, mine, true, mineBoard, GAME_RULE_UNKNOWN);
+
+        for (int i = 0; i < lineList.size(); ++i) {
+            line = lineList.get(i);
+            for (int j = 0; j < lineList.get(0).length(); ++j) {
+                switch (line.charAt(j)) {
+                    case CHAR_NUM: this.dig(i, j); break;
+                    case CHAR_FLAG: case CHAR_WRONG_FLAG: this.setFlag(i, j); break;
+                    case CHAR_QUESTION_ON_NUM: case CHAR_QUESTION_ON_MINE:
+                        this.setQuestion(i, j); break;
+                }
+            }
+        }
+    }
+
+    /**
+     * 保存残局到文件
+     * @param file 文件
+     * @throws IOException 写文件可能出错
+     */
+    public void saveGameToFile(File file) throws IOException {
+        if (!cheat) return;
+        file.createNewFile();
+        FileWriter fileWriter = new FileWriter(file);
+        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+        for (int i = 0; i < this.row; ++i) {
+            for (int j = 0; j < this.col; ++j) {
+                char toWrite;
+                final int cell = this.playerBoard[i][j];
+                final boolean mine = this.mineBoard[i][j];
+                if (cell < 9) toWrite = CHAR_NUM;
+                else if (cell == FLAG) {
+                    toWrite = (mine ? CHAR_FLAG : CHAR_WRONG_FLAG);
+                }
+                else if (cell == QUESTION) {
+                    toWrite = (mine ? CHAR_QUESTION_ON_MINE : CHAR_QUESTION_ON_NUM);
+                }
+                else {
+                    toWrite = (mine ? CHAR_MINE : CHAR_UNCHECKED);
+                }
+                bufferedWriter.write(toWrite + " ");
+            }
+            bufferedWriter.write("\n");
+        }
+        bufferedWriter.flush();
+        bufferedWriter.close();
+        fileWriter.close();
     }
 
     /**

@@ -407,11 +407,11 @@ public class WinXpSweeper extends MineSweeper {
      */
     public static class WindowOccludedException extends RuntimeException {
         public WindowOccludedException() {
-            super("扫雷窗口可能被遮挡、移动或关闭!");
+            super("winmine.exe 窗口可能被遮挡、移动或关闭!");
         }
 
         public WindowOccludedException(BufferedImage image) {
-            super("扫雷窗口可能被遮挡、移动或关闭! 问题截图 cap.png 已保存在当前目录.");
+            super("winmine.exe 窗口可能被遮挡、移动或关闭! 问题截图 cap.png 已保存在当前目录.");
             saveImage(image, "cap");
         }
     }

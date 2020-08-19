@@ -13,6 +13,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Gui extends JFrame {
 
@@ -106,8 +107,8 @@ public class Gui extends JFrame {
 
         JMenuItem checkBasicMenuItem    = new JMenuItem("提示一格（快）");
         JMenuItem aiDebugMenuItem       = new JMenuItem("显示概率（慢）");
-        JMenuItem sweepBasicMenuItem    = new JMenuItem("自动清扫（快）");
-        JMenuItem sweepAdvancedMenuItem = new JMenuItem("自动清扫（慢）");
+        JMenuItem sweepBasicMenuItem    = new JMenuItem("安全清扫（快）");
+        JMenuItem sweepAdvancedMenuItem = new JMenuItem("安全清扫（慢）");
         JMenuItem sweepToEndMenuItem    = new JMenuItem("扫到结束（慢）");
         aiMenu.add(checkBasicMenuItem);
         aiMenu.add(aiDebugMenuItem);
@@ -320,14 +321,19 @@ public class Gui extends JFrame {
             }
         }).start());
 
-        aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
+        aiDebugMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
         aiDebugMenuItem.addActionListener(e -> new Thread(() -> {
             int[][] cc = AutoSweeper.findAllConnectedComponents(game).getValue();
             double[][] prob = AutoSweeper.calculateAllProbabilities(game);
+
+
+            AutoSweeper.calculateAllWinRate(game);
+
+
             canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
-        sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
+        sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
         sweepBasicMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
             AutoSweeper.sweepAllBasic(game);
@@ -335,7 +341,7 @@ public class Gui extends JFrame {
             setFrameAfterOperation();
         }).start());
 
-        sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
+        sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
         sweepAdvancedMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
             AutoSweeper.sweepAllAdvanced(game);
@@ -343,8 +349,10 @@ public class Gui extends JFrame {
             setFrameAfterOperation();
         }).start());
 
-        sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
+        sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
         sweepToEndMenuItem.addActionListener(e -> new Thread(() -> {
+            if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
+                timeThread.start();
             canvas.doNotUpdateTheFuckingCanvasNow(true);
             AutoSweeper.sweepToEnd(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);

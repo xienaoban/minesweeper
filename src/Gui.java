@@ -13,7 +13,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Gui extends JFrame {
 
@@ -103,7 +103,6 @@ public class Gui extends JFrame {
         cheatMenu.add(mineMenuItem);
         cheatMenu.add(loadMineMenuItem);
         cheatMenu.add(saveMineMenuItem);
-
 
         JMenuItem checkBasicMenuItem    = new JMenuItem("提示一格（快）");
         JMenuItem aiProbMenuItem        = new JMenuItem("非雷概率（慢）");
@@ -335,9 +334,8 @@ public class Gui extends JFrame {
 
         aiWinRateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
         aiWinRateMenuItem.addActionListener(e -> new Thread(() -> {
-            int[][] cc = new int[game.getRow()][game.getCol()];
             double[][] prob = AutoSweeper.getWinRateGraph(game);
-            canvas.setConnectedComponentsAndProbability(cc, prob);
+            canvas.setConnectedComponentsAndProbability(null, prob);
         }).start());
 
         sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
@@ -435,6 +433,33 @@ public class Gui extends JFrame {
         container.add(this.timeLabelCanvas);
         container.add(this.boardBorderCanvas);
         container.add(this.infoBorderCanvas);
+
+        AtomicInteger xXxXx = new AtomicInteger();
+        infoBorderCanvas.addKeyListener(new KeyListener() {
+            @Override public void keyPressed(KeyEvent e) { }
+            @Override public void keyReleased(KeyEvent e) { }
+            @Override public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() != 'x') return;
+                if (xXxXx.incrementAndGet() < 5) return;
+                xXxXx.set(0);
+                allowQuestionMenuItem.setSelected(false);
+                MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
+                final int XIE_NAO_BAN_CELL_LENGTH = 40 + 2;
+                if (cellLength != XIE_NAO_BAN_CELL_LENGTH) {
+                    cellLength = XIE_NAO_BAN_CELL_LENGTH;
+                    setFrame();
+                    canvas.requestRepaintAll(false);
+                }
+                if (!advancedMenuItem.isSelected()) {
+                    beginnerMenuItem.setSelected(false);
+                    intermediateMenuItem.setSelected(false);
+                    advancedMenuItem.setSelected(true);
+                    customMenuItem.setSelected(false);
+                    xpMenuItem.setSelected(false);
+                    initGame(MineSweeper.DIFFICULTY_EXPERT);
+                }
+            }
+        });
     }
 
     private void initGame() {
@@ -690,6 +715,7 @@ public class Gui extends JFrame {
                 int id = this.connectedComponents[posYToIdxX(py)][posXToIdxY(px)];
                 if (id > 0) color = this.COLOR[(id - 1) % 6 + 1];
             }
+            else color = new Color(173, 80, 12);
             g.setColor(color);
             g.drawString(s, px + (cellLength - fontWidth) / 2, py + (cellLength + fontHeight / 2) / 2);
             g.setFont(this.font);

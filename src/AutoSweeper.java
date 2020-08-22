@@ -15,6 +15,16 @@ public class AutoSweeper {
     public static final int CC_VISITED = -233;
     public static final int CC_UNKNOWN = 0;
 
+    // 下一步可确定的平均格子算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
+    private static final int MAX_NEXT_SITUATION_NUM = 20;
+
+
+    // 时间复杂度爆炸的胜率算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
+    // 该值指数级影响 AI 的总耗时
+    private static final int MAX_WIN_RATE_NUM = 12;
+
+
+
     // 二维数组的 [n][m] 表示当 n 个未知格子有 m 个雷时, 有多少种可能的情况
     // 用 long 可能会溢出, 但同时后面会用到浮点除法, 所以又不能用 BigInteger, 于是选用了 BigDecimal
     private static final ArrayList<ArrayList<BigDecimal>> numOfCasesForGivenCellsAndMines;
@@ -197,14 +207,15 @@ public class AutoSweeper {
      * @param game 一局游戏
      * @return 最后一次计算得概率后没有利用, 将其返回以重复利用
      */
-    public static double[][] sweepAllAdvanced(MineSweeper game) {
+    public static ProbResult sweepAllAdvanced(MineSweeper game) {
         boolean loop = true;
-        double[][] prob = null;
+        ProbResult probResult = null;
         while (loop && game.getGameState() == MineSweeper.PROCESS) {
             loop = false;
             sweepAllBasic(game);
             if (game.getGameState() != MineSweeper.PROCESS) break;
-            prob = calculateAllProbabilities(game);
+            probResult = calculateAllProbabilities(game);
+            double[][] prob = probResult.probGraph;
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 // 只扫爆雷概率为 0 的, 不标爆雷概率为 1 的.
                 // 虽然概率计算应该是精确的, 但是还是有极低概率出现计算得概率为 1 但却不是雷 (猜测可能是精度问题).
@@ -216,7 +227,7 @@ public class AutoSweeper {
             }
             game.lazyUpdate();
         }
-        return prob;
+        return probResult;
     }
 
     /**
@@ -235,16 +246,17 @@ public class AutoSweeper {
         // 这段代码很长, 但逻辑还算清晰, 就不拆成多个函数了
         while (game.getGameState() == MineSweeper.PROCESS) {
             // 先把百分百有把握的格子扫了
-            double[][] prob = sweepAllAdvanced(game);
+            ProbResult probResult = sweepAllAdvanced(game);
             if (game.getGameState() != MineSweeper.PROCESS) break;
-            if (prob == null) prob = calculateAllProbabilities(game);
+            if (probResult == null) probResult = calculateAllProbabilities(game);
+            double[][] prob = probResult.probGraph;
 
             // 至此, 局面上已经没有百分百「是雷」/「不是雷」的格子了, 于是需要一些策略来扫一个格子.
             // 下面有两大种策略:
-            //     1. 基于「所有后续局面」的全局胜率 (复杂度爆炸, 仅在残局使用).
+            //     1. 基于「所有后续局面」的全局 / 局部胜率 (复杂度爆炸, 仅在残局使用).
             //     2. 基于「仅针对当前局面」的爆雷概率 (速度相对更快);
 
-            sweepBasedOnWinRate(game);
+            sweepBasedOnWinRate(game, probResult);
             if (game.getGameState() != MineSweeper.PROCESS) break;
 
             // 根据计算得的每个格子的爆雷概率, 找出爆雷概率最小的格子 (如果最小概率的格子有多个, 还有一些小策略, 详情见 for 内注释)
@@ -272,16 +284,15 @@ public class AutoSweeper {
             }
 
             // 若有多个爆雷概率最小的格子且 **复杂度允许**, 则对这些格子计算「选择该格子后, 可百分百确定的其他格子的期望数量」
-            final int MAX_CANDIDATES = 16;
-            List<Point> candidates = new ArrayList<>(MAX_CANDIDATES + 1);
+            List<Point> candidates = new ArrayList<>(MAX_NEXT_SITUATION_NUM + 1);
             candidates.add(new Point(maxX, maxY));
             for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
                 if (i == maxX && j == maxY) continue;
                 if (prob[i][j] != prob[maxX][maxY]) continue;
                 candidates.add(new Point(i, j));
-                if (candidates.size() > MAX_CANDIDATES) break;
+                if (candidates.size() > MAX_NEXT_SITUATION_NUM) break;
             }
-            if (candidates.size() <= MAX_CANDIDATES) {
+            if (candidates.size() <= MAX_NEXT_SITUATION_NUM) {
                 int[][] board = game.getPlayerBoard();
                 int[][] ccGraph = findAllConnectedComponents(game).getValue();
                 double maxAvgSafe = 0;
@@ -385,7 +396,7 @@ public class AutoSweeper {
      * @param game 一局游戏
      * @return 每个格子的有雷概率
      */
-    public static double[][] calculateAllProbabilities(MineSweeper game) {
+    public static ProbResult calculateAllProbabilities(MineSweeper game) {
         double[][] probGraph = new double[game.getRow()][game.getCol()];
         Pair<List<List<Point>>, int[][]> _ccPair = findAllConnectedComponents(game);
         List<List<Point>> ccList = _ccPair.getKey();
@@ -418,30 +429,88 @@ public class AutoSweeper {
             }
         }
 //        printProbability(probGraph);
-        return probGraph;
+        return new ProbResult(_ccPair.getKey(), _ccPair.getValue(), ccPermList, probGraph);
     }
 
-    /**
-     * 根据全局胜利的策略, 把当前残局扫到结束
-     * 因为计算全局胜率会计算所有子局面的胜率, 所以可以一口气全部扫完了. 如果判定计算耗时超标则不予计算.
-     * @param game 一局游戏
-     */
-    public static void sweepBasedOnWinRate(MineSweeper game) {
-        Pair<List<Point>, Map<String, Pair<Pair<Integer, Double>, double[]>>> _pair = calculateAllWinRate(game);
-        if (_pair == null) return;
-        List<Point> toCheck = _pair.getKey();
-        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = _pair.getValue();
+    public static boolean sweepBasedOnWinRate(MineSweeper game, ProbResult probInfo) {
+        return sweepIsolatedAreasBasedOnWinRate(game, probInfo) || sweepAllAreasBasedOnWinRate(game);
+    }
+
+    private static boolean sweepAllAreasBasedOnWinRate(MineSweeper game) {
+        if (game.getUncheckedCellLeft() > MAX_WIN_RATE_NUM) return false;
+        return sweepGivenAreaBasedOnWinRate(game, game.getPlayerBoard(), getAllUncheckedPoints(game), game.getMineLeft());
+    }
+
+    private static boolean sweepIsolatedAreasBasedOnWinRate(MineSweeper game, ProbResult probInfo) {
+        boolean worked = false;
+        for (int index = 0; index < probInfo.ccList.size(); ++index) {
+            List<Point>         points  = probInfo.ccList.get(index);
+            Map<Integer, int[]> perms   = probInfo.ccPermList.get(index);
+            if (points.size() > MAX_WIN_RATE_NUM) continue;
+
+            // 判断一块区域是不是孤立的 (即区域内可能存在的雷数是确定的)
+            if (perms.size() != 1) continue;
+            boolean isIsolated = true;
+            for (Point p : points) {
+                for (Point pa : game.getAround(p.x, p.y)) {
+                    int cellState = game.getPlayerBoard(pa.x, pa.y);
+                    if ((cellState == MineSweeper.UNCHECKED || cellState == MineSweeper.QUESTION)
+                            && probInfo.ccGraph[pa.x][pa.y] != probInfo.ccGraph[p.x][p.y]) {
+                        isIsolated = false;
+                        break;
+                    }
+                }
+                if (!isIsolated) break;
+            }
+            if (!isIsolated) continue;
+
+            // 获取该孤立区域的雷数
+            int mineCnt = 0;
+            for (int cnt : perms.keySet()) mineCnt = cnt; // 雷数 (即 perms 的 key) 只有一种可能, 即 for 只会执行一次
+
+            // 把非待测区域的地方都填满 (一开始没考虑周到, 导致现在调用那些方法得曲线救国. 但是又懒得重构了)
+            int[][] testBoard = new int[game.getRow()][game.getCol()], board = game.getPlayerBoard();
+            for (Point p : points) {
+                if (board[p.x][p.y] == MineSweeper.UNCHECKED || board[p.x][p.y] == MineSweeper.QUESTION) {
+                    testBoard[p.x][p.y] = MineSweeper.NOT_MINE;
+                }
+            }
+            int flagToAdd = game.getMineLeft() - mineCnt;
+            for (int i = 0; i < testBoard.length; ++i) for (int j = 0; j < testBoard[0].length; ++j) {
+                if (testBoard[i][j] == MineSweeper.NOT_MINE) testBoard[i][j] = MineSweeper.UNCHECKED;
+                else if (board[i][j] == MineSweeper.UNCHECKED || board[i][j] == MineSweeper.QUESTION) {
+                    if (flagToAdd > 0) {
+                        --flagToAdd;
+                        testBoard[i][j] = MineSweeper.FLAG;
+                    }
+                    else testBoard[i][j] = 8;
+                }
+                else testBoard[i][j] = board[i][j];
+            }
+
+            worked = sweepGivenAreaBasedOnWinRate(game, testBoard, points, mineCnt) || worked;
+            if (game.getGameState() != MineSweeper.PROCESS) break;
+        }
+        return worked;
+    }
+
+    private static boolean sweepGivenAreaBasedOnWinRate(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt) {
+        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = calculateAllWinRates(game, board, toCheck, maxMineCnt);
+        if (vis == null) return false;
         while (game.getGameState() == MineSweeper.PROCESS) {
             String uri = uriOfBoard(game.getPlayerBoard(), toCheck);
             Pair<Pair<Integer, Double>, double[]> winRateInfo = vis.get(uri);
             double[] rateList = winRateInfo.getValue();
             double maxRate = winRateInfo.getKey().getValue();
-            for (int i = 0; i < toCheck.size(); ++i) {
+            int i;
+            for (i = 0; i < toCheck.size(); ++i) {
                 if (rateList[i] != maxRate) continue;
                 game.dig(toCheck.get(i).x, toCheck.get(i).y);
                 break;
             }
+            if (i == toCheck.size()) break;
         }
+        return true;
     }
 
     /**
@@ -450,21 +519,94 @@ public class AutoSweeper {
      * @return 所有格子的胜率 (如果计算耗时超标则全部返回 NaN)
      */
     public static double[][] getWinRateGraph(MineSweeper game) {
-        Pair<List<Point>, Map<String, Pair<Pair<Integer, Double>, double[]>>> _pair = calculateAllWinRate(game);
+        List<Point> toCheck = getAllUncheckedPoints(game);
+        Map<String, Pair<Pair<Integer, Double>, double[]>> vis
+                = calculateAllWinRates(game, game.getPlayerBoard(), toCheck, game.getMineLeft());
         double[][] rateGraph = new double[game.getRow()][game.getCol()];
-        if (_pair == null) {
+        if (vis == null) {
             rateGraph = new double[game.getRow()][game.getCol()];
             for (int i = 0; i < rateGraph.length; ++i) for (int j = 0; j < rateGraph[0].length; ++j) {
                 rateGraph[i][j] = Double.NaN;
             }
         }
         else {
-            double[] winRates = _pair.getValue().get(uriOfBoard(game.getPlayerBoard(), _pair.getKey())).getValue();
+            double[] winRates = vis.get(uriOfBoard(game.getPlayerBoard(), toCheck)).getValue();
             for (int i = 0; i < winRates.length; ++i) {
-                rateGraph[_pair.getKey().get(i).x][_pair.getKey().get(i).y] = winRates[i];
+                rateGraph[toCheck.get(i).x][toCheck.get(i).y] = winRates[i];
             }
         }
         return rateGraph;
+    }
+
+    private static Map<String, Pair<Pair<Integer, Double>, double[]>> calculateAllWinRates(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt) {
+        if (toCheck.size() > MAX_WIN_RATE_NUM) return null;
+        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = new HashMap<>(500000);
+        if (calculateBoardWinRate(game, board, toCheck, maxMineCnt, vis) == null) return null;
+        return vis;
+    }
+
+    private static Pair<Integer, Double> calculateBoardWinRate(MineSweeper game, int[][] board,
+                                                               List<Point> toCheck, int maxMineCnt,
+                                                               Map<String, Pair<Pair<Integer, Double>, double[]>> vis) {
+        String uri = uriOfBoard(board, toCheck);
+        Pair<Pair<Integer, Double>, double[]> tuple = vis.get(uri);
+        if (tuple != null) return tuple.getKey();
+
+        double[] winRates = new double[toCheck.size()];
+        List<Point> _unchecked = new ArrayList<>(toCheck.size());
+        for (Point p : toCheck) {
+            if (board[p.x][p.y] == MineSweeper.UNCHECKED || board[p.x][p.y] == MineSweeper.QUESTION) {
+                _unchecked.add(p);
+            }
+        }
+        int permCnt = calculatePermCnt(game, board).intValue();
+        if (_unchecked.size() == maxMineCnt || permCnt == 0) {
+            vis.put(uri, new Pair<>(new Pair<>(permCnt, (double) permCnt), winRates));
+            return new Pair<>(permCnt, (double) permCnt);
+        }
+
+        int maxIndex = -1;
+        for (int index = 0; index < toCheck.size(); ++index) {
+            int x = toCheck.get(index).x, y = toCheck.get(index).y;
+            if (board[x][y] != MineSweeper.UNCHECKED && board[x][y] != MineSweeper.QUESTION) continue;
+            double cellWinRate = calculateCellWinRate(game, board, toCheck, maxMineCnt, index, permCnt, vis);
+            winRates[index] = cellWinRate;
+
+            if (maxIndex == -1 || winRates[maxIndex] < cellWinRate) {
+                maxIndex = index;
+            }
+        }
+        vis.put(uri, new Pair<>(new Pair<>(permCnt, winRates[maxIndex]), winRates));
+        return new Pair<>(permCnt, winRates[maxIndex]);
+    }
+
+    private static double calculateCellWinRate(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt,
+                                               int checkIndex, int permCnt,
+                                               Map<String, Pair<Pair<Integer, Double>, double[]>> vis) {
+        int x = toCheck.get(checkIndex).x, y = toCheck.get(checkIndex).y;
+        double cellWinRate = 0.0;
+        board[x][y] = MineSweeper.NOT_MINE;
+        if (isUncheckedCellLegal(game, board, x, y)) {
+            for (int cellState = 0; cellState <= 8; ++cellState) {
+                board[x][y] = cellState;
+                if (!isUncoveredCellLegal(game, board, x, y)) continue;
+                Pair<Integer, Double> _pair = calculateBoardWinRate(game, board, toCheck, maxMineCnt, vis);
+                assert _pair != null;
+                cellWinRate += _pair.getValue() * _pair.getKey() / permCnt;
+            }
+        }
+        board[x][y] = MineSweeper.UNCHECKED;
+        return cellWinRate;
+    }
+
+    private static List<Point> getAllUncheckedPoints(MineSweeper game) {
+        List<Point> toCheck = new ArrayList<>(MAX_WIN_RATE_NUM);
+        for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
+            if (game.getPlayerBoard(i, j) != MineSweeper.UNCHECKED
+                    && game.getPlayerBoard(i, j) != MineSweeper.QUESTION) continue;
+            toCheck.add(new Point(i, j));
+        }
+        return  toCheck;
     }
 
     /**
@@ -643,96 +785,6 @@ public class AutoSweeper {
     }
 
     /**
-     * 计算一个子局面的全局胜率 (= 未知格子的全局胜率中的最大值)
-     * @param game 一局游戏
-     * @param board 当前子局面
-     * @param toCheck 所有待测未知格子
-     * @param vis 记忆化搜索, 保存所有已经计算过的局面胜率
-     * @return 局面胜率 (当前局面可能的排列的总数, 当前局面全局胜率)
-     */
-    private static Pair<Integer, Double> calculateBoardWinRate(MineSweeper game, int[][] board, List<Point> toCheck,
-                                                               Map<String, Pair<Pair<Integer, Double>, double[]>> vis) {
-        String uri = uriOfBoard(board, toCheck);
-        Pair<Pair<Integer, Double>, double[]> tuple = vis.get(uri);
-        if (tuple != null) return tuple.getKey();
-
-        double[] winRates = new double[toCheck.size()];
-        List<Point> _unchecked = new ArrayList<>(toCheck.size());
-        for (Point p : toCheck) {
-            if (board[p.x][p.y] == MineSweeper.UNCHECKED || board[p.x][p.y] == MineSweeper.QUESTION) {
-                _unchecked.add(p);
-            }
-        }
-        int permCnt = calculatePermCnt(game, board).intValue();
-        if (_unchecked.size() == game.getMineLeft() || permCnt == 0) {
-            vis.put(uri, new Pair<>(new Pair<>(permCnt, (double) permCnt), winRates));
-            return new Pair<>(permCnt, (double) permCnt);
-        }
-
-        int maxIndex = -1;
-        for (int index = 0; index < toCheck.size(); ++index) {
-            int x = toCheck.get(index).x, y = toCheck.get(index).y;
-            if (board[x][y] != MineSweeper.UNCHECKED && board[x][y] != MineSweeper.QUESTION) continue;
-            double cellWinRate = calculateCellWinRate(game, board, toCheck, index, permCnt, vis);
-            winRates[index] = cellWinRate;
-
-            if (maxIndex == -1 || winRates[maxIndex] < cellWinRate) {
-                maxIndex = index;
-            }
-        }
-        vis.put(uri, new Pair<>(new Pair<>(permCnt, winRates[maxIndex]), winRates));
-        return new Pair<>(permCnt, winRates[maxIndex]);
-    }
-
-    /**
-     * 计算当前局面下选择挖开一个未知格子的全局胜率
-     * @param game 一局游戏
-     * @param board 当前子局面
-     * @param toCheck 所有未知的格子
-     * @param checkIndex 被选择的未知格子的下标
-     * @param permCnt 当前局面的所有排列的数量
-     * @param vis 记忆化搜索, 保存所有已经计算过的局面胜率
-     * @return 点击该格子的全局胜率
-     */
-    private static double calculateCellWinRate(MineSweeper game, int[][] board, List<Point> toCheck, int checkIndex,
-                                               int permCnt, Map<String, Pair<Pair<Integer, Double>, double[]>> vis) {
-        int x = toCheck.get(checkIndex).x, y = toCheck.get(checkIndex).y;
-        double cellWinRate = 0.0;
-        board[x][y] = MineSweeper.NOT_MINE;
-        if (isUncheckedCellLegal(game, board, x, y)) {
-            for (int cellState = 0; cellState <= 8; ++cellState) {
-                board[x][y] = cellState;
-                if (!isUncoveredCellLegal(game, board, x, y)) continue;
-                Pair<Integer, Double> _pair = calculateBoardWinRate(game, board, toCheck, vis);
-                assert _pair != null;
-                cellWinRate += _pair.getValue() * _pair.getKey() / permCnt;
-            }
-        }
-        board[x][y] = MineSweeper.UNCHECKED;
-        return cellWinRate;
-    }
-
-    /**
-     * 计算当前局面的全局胜率
-     * @param game 一局游戏
-     * @return (所有待测未知格子, 所有子局面的胜率)
-     */
-    private static Pair<List<Point>, Map<String, Pair<Pair<Integer, Double>, double[]>>> calculateAllWinRate(MineSweeper game) {
-        final int MAX_UNCHECKED = 10;
-        if (game.getUncheckedCellLeft() > MAX_UNCHECKED) return null;
-        List<Point> toCheck = new ArrayList<>(MAX_UNCHECKED);
-        for (int i = 0; i < game.getRow(); ++i) for (int j = 0; j < game.getCol(); ++j) {
-            if (game.getPlayerBoard(i, j) != MineSweeper.UNCHECKED
-                    && game.getPlayerBoard(i, j) != MineSweeper.QUESTION) continue;
-            toCheck.add(new Point(i, j));
-        }
-        int[][] board = game.getPlayerBoard();
-        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = new HashMap<>(500000);
-        if (calculateBoardWinRate(game, board, toCheck, vis) == null) return null;
-        return new Pair<>(toCheck, vis);
-    }
-
-    /**
      * 综合考虑两个连通分量 (或包含多个分量的分量集合), 计算在不同雷数情况下有多少种可能性
      * 对于一个分量 P, S_P 代表分量 P 可能的雷数的集合, 且当分量雷数为 i (∈S_P) 时有 N_P_i 种情况 (同时 i 必小于等于剩余总雷数).
      * 则对于两个分量 (或分量集合) P1、P2, 雷数集合分别为 S1、S2, 当雷有 n 个时, 有 ΣN1_i * N2_j (i∈S1, j∈S2, i + j = n) 种情况.
@@ -763,12 +815,6 @@ public class AutoSweeper {
         return res;
     }
 
-    /**
-     * 计算当前局面的雷有多少种排列的可能性
-     * @param game 游戏的信息
-     * @param board 当前的局面
-     * @return 排列个数
-     */
     private static BigDecimal calculatePermCnt(MineSweeper game, int[][] board) {
         DebugSweeper g2 = new DebugSweeper(game, board);
         Pair<List<List<Point>>, int[][]> _pair = findAllConnectedComponents(g2);
@@ -930,6 +976,32 @@ public class AutoSweeper {
                 else if (this.playerBoard[i][j] == FLAG) --mineLeft;
             }
             this.step = 2;
+        }
+
+        public DebugSweeper(MineSweeper game) {
+            super(game.getRow(), game.getCol(), game.getMineCount(), true, game.getGameRule());
+            this.playerBoard = game.getPlayerBoard();
+            this.coveredCellLeft = game.getUncheckedCellLeft() - game.getMineLeft();
+            this.mineLeft = game.getMineLeft();
+            this.step = 2;
+        }
+    }
+
+    /**
+     * 计算概率时后续可能用到的返回值太多了, 单独列个类
+     */
+    public static class ProbResult {
+        public List<List<Point>> ccList;
+        public int[][] ccGraph;
+        public List<Map<Integer, int[]>> ccPermList;
+        public double[][] probGraph;
+
+        public ProbResult() {}
+        public ProbResult(List<List<Point>> ccList, int[][] ccGraph, List<Map<Integer, int[]>> ccPermList, double[][] probGraph) {
+            this.ccList = ccList;
+            this.ccGraph = ccGraph;
+            this.ccPermList = ccPermList;
+            this.probGraph = probGraph;
         }
     }
 }

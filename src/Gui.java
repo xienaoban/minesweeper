@@ -4,6 +4,8 @@
  * 尤其是 负责展示棋盘的内部类 BoardCanvas, 一直想重构但是涉及的逻辑比较烦, 且远没有三个 Sweeper 类重要, 就一直没改.
  * 于是连注释都不想写了, 估计半年后包括我在内没有人看得懂了.
  */
+import javafx.util.Pair;
+
 import static java.awt.event.InputEvent.*;
 import static java.awt.event.KeyEvent.*;
 import javax.swing.*;
@@ -324,8 +326,9 @@ public class Gui extends JFrame {
 
         aiProbMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
         aiProbMenuItem.addActionListener(e -> new Thread(() -> {
-            int[][] cc = AutoSweeper.findAllConnectedComponents(game).getValue();
-            double[][] prob = AutoSweeper.calculateAllProbabilities(game);
+            AutoSweeper.ProbResult probResult = AutoSweeper.calculateAllProbabilities(game);
+            int[][] cc = probResult.ccGraph;
+            double[][] prob = probResult.probGraph;
             for (int i = 0; i < prob.length; ++i)  for (int j = 0; j < prob[0].length; ++j) {
                 prob[i][j] = 1.0 - prob[i][j];
             }

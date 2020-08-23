@@ -16,14 +16,12 @@ public class AutoSweeper {
     public static final int CC_UNKNOWN = 0;
 
     // 下一步可确定的平均格子算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
-    private static final int MAX_NEXT_SITUATION_NUM = 20;
-
+    // 该策略只是一种估算, 估算的格子越多偏差也可能越大. 所以该数字不是越大越好, 12 ~ 18 之间或许比较合理.
+    private static final int MAX_NEXT_SITUATION_NUM = 16;
 
     // 时间复杂度爆炸的胜率算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
-    // 该值指数级影响 AI 的总耗时
+    // 该策略精确计算点击每个格子的胜率, 所以该数字越大胜率越高. 但该数字指数级影响 AI 的总耗时.
     private static final int MAX_WIN_RATE_NUM = 12;
-
-
 
     // 二维数组的 [n][m] 表示当 n 个未知格子有 m 个雷时, 有多少种可能的情况
     // 用 long 可能会溢出, 但同时后面会用到浮点除法, 所以又不能用 BigInteger, 于是选用了 BigDecimal
@@ -432,6 +430,54 @@ public class AutoSweeper {
         return new ProbResult(_ccPair.getKey(), _ccPair.getValue(), ccPermList, probGraph);
     }
 
+    /**
+     * 计算并获得当前每个格子的胜率
+     * @param game 一局游戏
+     * @return 所有格子的胜率 (如果计算耗时超标则全部返回 NaN)
+     */
+    public static Pair<int[][], double[][]> getWinRateGraph(MineSweeper game) {
+        double[][] rateGraph = new double[game.getRow()][game.getCol()];
+        for (int i = 0; i < rateGraph.length; ++i) for (int j = 0; j < rateGraph[0].length; ++j) {
+            rateGraph[i][j] = Double.NaN;
+        }
+        int[][] areaGraph = new int[game.getRow()][game.getCol()];
+        int areaIndex = 0;
+        int notIsolatedCellCnt = game.getUncheckedCellLeft();
+        ProbResult pr = calculateAllProbabilities(game);
+        for (Pair<Pair<List<Point>, Integer>, int[][]> area : findAllIsolatedAreas(game, pr)) {
+            List<Point> toCheck = area.getKey().getKey();
+            int maxMineCnt = area.getKey().getValue();
+            int[][] board = area.getValue();
+            Map<String, Pair<Pair<Integer, Double>, double[]>> vis
+                    = calculateAllWinRates(game, board, toCheck, maxMineCnt);
+            if (vis == null) continue;
+            notIsolatedCellCnt -= toCheck.size();
+            double[] rates = vis.get(uriOfBoard(board, toCheck)).getValue();
+            ++areaIndex;
+            for (int i = 0; i < toCheck.size(); ++i) {
+                rateGraph[toCheck.get(i).x][toCheck.get(i).y] = rates[i];
+                areaGraph[toCheck.get(i).x][toCheck.get(i).y] = areaIndex;
+            }
+        }
+        if (areaIndex == 1 && notIsolatedCellCnt == 0) {
+            // 如果该孤立区域即全部未知区域, 则把背景换成金色 (仅仅是为了展示好看易于理解)
+            areaGraph = null;
+        }
+        else if (areaIndex == 0) {
+            List<Point> toCheck = getAllUncheckedPoints(game);
+            Map<String, Pair<Pair<Integer, Double>, double[]>> vis
+                    = calculateAllWinRates(game, game.getPlayerBoard(), toCheck, game.getMineLeft());
+            if (vis != null) {
+                areaGraph = null;
+                double[] winRates = vis.get(uriOfBoard(game.getPlayerBoard(), toCheck)).getValue();
+                for (int i = 0; i < winRates.length; ++i) {
+                    rateGraph[toCheck.get(i).x][toCheck.get(i).y] = winRates[i];
+                }
+            }
+        }
+        return new Pair<>(areaGraph, rateGraph);
+    }
+
     public static boolean sweepBasedOnWinRate(MineSweeper game, ProbResult probInfo) {
         return sweepIsolatedAreasBasedOnWinRate(game, probInfo) || sweepAllAreasBasedOnWinRate(game);
     }
@@ -443,9 +489,40 @@ public class AutoSweeper {
 
     private static boolean sweepIsolatedAreasBasedOnWinRate(MineSweeper game, ProbResult probInfo) {
         boolean worked = false;
+        for (Pair<Pair<List<Point>, Integer>, int[][]> area : findAllIsolatedAreas(game, probInfo)) {
+            List<Point> toCheck = area.getKey().getKey();
+            int maxMineCnt = area.getKey().getValue();
+            int[][] board = area.getValue();
+            worked = sweepGivenAreaBasedOnWinRate(game, board, toCheck, maxMineCnt) || worked;
+            if (game.getGameState() != MineSweeper.PROCESS) break;
+        }
+        return worked;
+    }
+
+    private static boolean sweepGivenAreaBasedOnWinRate(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt) {
+        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = calculateAllWinRates(game, board, toCheck, maxMineCnt);
+        if (vis == null) return false;
+        while (game.getGameState() == MineSweeper.PROCESS) {
+            String uri = uriOfBoard(game.getPlayerBoard(), toCheck);
+            Pair<Pair<Integer, Double>, double[]> winRateInfo = vis.get(uri);
+            double[] rateList = winRateInfo.getValue();
+            double maxRate = winRateInfo.getKey().getValue();
+            int i;
+            for (i = 0; i < toCheck.size(); ++i) {
+                if (rateList[i] != maxRate) continue;
+                game.dig(toCheck.get(i).x, toCheck.get(i).y);
+                break;
+            }
+            if (i == toCheck.size()) break;
+        }
+        return true;
+    }
+
+    private static List<Pair<Pair<List<Point>, Integer>, int[][]>> findAllIsolatedAreas(MineSweeper game, ProbResult probInfo) {
+        List<Pair<Pair<List<Point>, Integer>, int[][]>> res = new ArrayList<>();
         for (int index = 0; index < probInfo.ccList.size(); ++index) {
-            List<Point>         points  = probInfo.ccList.get(index);
-            Map<Integer, int[]> perms   = probInfo.ccPermList.get(index);
+            List<Point> points = probInfo.ccList.get(index);
+            Map<Integer, int[]> perms = probInfo.ccPermList.get(index);
             if (points.size() > MAX_WIN_RATE_NUM) continue;
 
             // 判断一块区域是不是孤立的 (即区域内可能存在的雷数是确定的)
@@ -482,60 +559,12 @@ public class AutoSweeper {
                     if (flagToAdd > 0) {
                         --flagToAdd;
                         testBoard[i][j] = MineSweeper.FLAG;
-                    }
-                    else testBoard[i][j] = 8;
-                }
-                else testBoard[i][j] = board[i][j];
+                    } else testBoard[i][j] = 8;
+                } else testBoard[i][j] = board[i][j];
             }
-
-            worked = sweepGivenAreaBasedOnWinRate(game, testBoard, points, mineCnt) || worked;
-            if (game.getGameState() != MineSweeper.PROCESS) break;
+            res.add(new Pair<>(new Pair<>(points, mineCnt), testBoard));
         }
-        return worked;
-    }
-
-    private static boolean sweepGivenAreaBasedOnWinRate(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt) {
-        Map<String, Pair<Pair<Integer, Double>, double[]>> vis = calculateAllWinRates(game, board, toCheck, maxMineCnt);
-        if (vis == null) return false;
-        while (game.getGameState() == MineSweeper.PROCESS) {
-            String uri = uriOfBoard(game.getPlayerBoard(), toCheck);
-            Pair<Pair<Integer, Double>, double[]> winRateInfo = vis.get(uri);
-            double[] rateList = winRateInfo.getValue();
-            double maxRate = winRateInfo.getKey().getValue();
-            int i;
-            for (i = 0; i < toCheck.size(); ++i) {
-                if (rateList[i] != maxRate) continue;
-                game.dig(toCheck.get(i).x, toCheck.get(i).y);
-                break;
-            }
-            if (i == toCheck.size()) break;
-        }
-        return true;
-    }
-
-    /**
-     * 计算并获得当前每个格子的胜率
-     * @param game 一局游戏
-     * @return 所有格子的胜率 (如果计算耗时超标则全部返回 NaN)
-     */
-    public static double[][] getWinRateGraph(MineSweeper game) {
-        List<Point> toCheck = getAllUncheckedPoints(game);
-        Map<String, Pair<Pair<Integer, Double>, double[]>> vis
-                = calculateAllWinRates(game, game.getPlayerBoard(), toCheck, game.getMineLeft());
-        double[][] rateGraph = new double[game.getRow()][game.getCol()];
-        if (vis == null) {
-            rateGraph = new double[game.getRow()][game.getCol()];
-            for (int i = 0; i < rateGraph.length; ++i) for (int j = 0; j < rateGraph[0].length; ++j) {
-                rateGraph[i][j] = Double.NaN;
-            }
-        }
-        else {
-            double[] winRates = vis.get(uriOfBoard(game.getPlayerBoard(), toCheck)).getValue();
-            for (int i = 0; i < winRates.length; ++i) {
-                rateGraph[toCheck.get(i).x][toCheck.get(i).y] = winRates[i];
-            }
-        }
-        return rateGraph;
+        return res;
     }
 
     private static Map<String, Pair<Pair<Integer, Double>, double[]>> calculateAllWinRates(MineSweeper game, int[][] board, List<Point> toCheck, int maxMineCnt) {

@@ -1,7 +1,7 @@
 import java.util.Scanner;
 
 public class Main {
-    public static final String VERSION = "v0.9-beta";
+    public static final String VERSION = "v1.0-release";
     private static final boolean T = true, F = false;
 
     // 能够导致 AI 遍历连通分量时卡死的典型案例

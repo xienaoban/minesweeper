@@ -106,12 +106,12 @@ public class Gui extends JFrame {
         cheatMenu.add(loadMineMenuItem);
         cheatMenu.add(saveMineMenuItem);
 
-        JMenuItem checkBasicMenuItem    = new JMenuItem("提示一格（快）");
-        JMenuItem aiProbMenuItem        = new JMenuItem("非雷概率（慢）");
-        JMenuItem aiWinRateMenuItem     = new JMenuItem("全局胜率（慢）");
-        JMenuItem sweepBasicMenuItem    = new JMenuItem("安全清扫（快）");
-        JMenuItem sweepAdvancedMenuItem = new JMenuItem("安全清扫（慢）");
-        JMenuItem sweepToEndMenuItem    = new JMenuItem("扫到结束（慢）");
+        JMenuItem checkBasicMenuItem    = new JMenuItem("提示一格（很快）");
+        JMenuItem aiProbMenuItem        = new JMenuItem("显示概率（较慢）");
+        JMenuItem aiWinRateMenuItem     = new JMenuItem("显示胜率（超慢）");
+        JMenuItem sweepBasicMenuItem    = new JMenuItem("安全清扫（很快）");
+        JMenuItem sweepAdvancedMenuItem = new JMenuItem("安全清扫（较慢）");
+        JMenuItem sweepToEndMenuItem    = new JMenuItem("扫到结束（超慢）");
         aiMenu.add(checkBasicMenuItem);
         aiMenu.add(aiProbMenuItem);
         aiMenu.add(aiWinRateMenuItem);
@@ -307,7 +307,7 @@ public class Gui extends JFrame {
             }
         });
 
-        checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Q, CTRL_MASK));
+        checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_A, SHIFT_MASK));
         checkBasicMenuItem.addActionListener(e -> new Thread(() -> {
             int[] res = AutoSweeper.checkAllBasic(game);
             if (res[0] == AutoSweeper.UNKNOWN) return;
@@ -324,7 +324,7 @@ public class Gui extends JFrame {
             }
         }).start());
 
-        aiProbMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_W, CTRL_MASK));
+        aiProbMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_S, SHIFT_MASK));
         aiProbMenuItem.addActionListener(e -> new Thread(() -> {
             AutoSweeper.ProbResult probResult = AutoSweeper.calculateAllProbabilities(game);
             int[][] cc = probResult.ccGraph;
@@ -335,13 +335,13 @@ public class Gui extends JFrame {
             canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
 
-        aiWinRateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_E, CTRL_MASK));
+        aiWinRateMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_D, SHIFT_MASK));
         aiWinRateMenuItem.addActionListener(e -> new Thread(() -> {
-            double[][] prob = AutoSweeper.getWinRateGraph(game);
-            canvas.setConnectedComponentsAndProbability(null, prob);
+            Pair<int[][], double[][]> res = AutoSweeper.getWinRateGraph(game);
+            canvas.setConnectedComponentsAndProbability(res.getKey(), res.getValue());
         }).start());
 
-        sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_R, CTRL_MASK));
+        sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, SHIFT_MASK));
         sweepBasicMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
             AutoSweeper.sweepAllBasic(game);
@@ -349,7 +349,7 @@ public class Gui extends JFrame {
             setFrameAfterOperation();
         }).start());
 
-        sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_T, CTRL_MASK));
+        sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_X, SHIFT_MASK));
         sweepAdvancedMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
             AutoSweeper.sweepAllAdvanced(game);
@@ -357,7 +357,7 @@ public class Gui extends JFrame {
             setFrameAfterOperation();
         }).start());
 
-        sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Y, CTRL_MASK));
+        sweepToEndMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_C, SHIFT_MASK));
         sweepToEndMenuItem.addActionListener(e -> new Thread(() -> {
             if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                 timeThread.start();
@@ -443,7 +443,7 @@ public class Gui extends JFrame {
             @Override public void keyReleased(KeyEvent e) { }
             @Override public void keyTyped(KeyEvent e) {
                 if (e.getKeyChar() != 'x') return;
-                if (xXxXx.incrementAndGet() < 5) return;
+                if (xXxXx.incrementAndGet() < 4) return;
                 xXxXx.set(0);
                 allowQuestionMenuItem.setSelected(false);
                 MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());

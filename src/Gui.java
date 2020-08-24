@@ -309,7 +309,7 @@ public class Gui extends JFrame {
 
         checkBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_A, SHIFT_MASK));
         checkBasicMenuItem.addActionListener(e -> new Thread(() -> {
-            int[] res = AutoSweeper.checkAllBasic(game);
+            int[] res = AutoSweeper.checkAllBasedOnDefinition(game);
             if (res[0] == AutoSweeper.UNKNOWN) return;
             int[][] arr1 = new int[][]{{res[0]}, {res[1], res[2]}};
             int[][] arr0 = new int[][]{{0}, {res[1], res[2]}};
@@ -344,7 +344,7 @@ public class Gui extends JFrame {
         sweepBasicMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_Z, SHIFT_MASK));
         sweepBasicMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
-            AutoSweeper.sweepAllBasic(game);
+            AutoSweeper.sweepAllBasedOnDefinition(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
         }).start());
@@ -352,7 +352,7 @@ public class Gui extends JFrame {
         sweepAdvancedMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_X, SHIFT_MASK));
         sweepAdvancedMenuItem.addActionListener(e -> new Thread(() -> {
             canvas.doNotUpdateTheFuckingCanvasNow(true);
-            AutoSweeper.sweepAllAdvanced(game);
+            AutoSweeper.sweepAllBasedOnProbability(game);
             canvas.doNotUpdateTheFuckingCanvasNow(false);
             setFrameAfterOperation();
         }).start());

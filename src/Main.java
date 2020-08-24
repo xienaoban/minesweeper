@@ -175,7 +175,7 @@ public class Main {
                         Thread.sleep(1000);
                         if (game == null) break;
                         long diff = System.currentTimeMillis() - time;
-                        if (diff > 5000) {
+                        if (diff > 6000) {
                             System.out.println();
                             System.out.println("第 " + round + " 局耗时超预期, 可能是因为连通分量太长. 当前步数: "
                                     + game.getStep() + ". 当前连通分量: ");
@@ -226,7 +226,7 @@ public class Main {
             if (roundEndTime - printTime > 120) {
                 printTime = roundEndTime;
                 System.out.printf(
-                        "第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    \r",
+                        "\r第 %d 局: %s   探索程度: %s   当前胜率: %.4f%%   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒    ",
                         round, (win ? "胜" : "负"),
                         (exploreRate < 10 ? "  " : (exploreRate < 100 ? " " : "")) + exploreRate + "%",
                         (double) winCnt / (double) round * 100, winTime / Math.max(winCnt, 1),
@@ -238,7 +238,7 @@ public class Main {
         for (int i = 0; i < exploreRateView.length; ++i) {
             exploreRateView[i] = (int)Math.ceil(10.0 * exploreRateView[i] / times);
         }
-        System.out.print("                                                         \r");
+        System.out.print("\r                                                            \r");
         System.out.printf("运行局数: %d   胜率: %.2f%%   运行总耗时: %d秒   平均胜局耗时: %d毫秒   平均每局耗时: %d毫秒        ",
                 times, (double)winCnt / (double)times * 100, totalTime / 1000, winTime / Math.max(winCnt, 1), totalTime / times);
         System.out.println();

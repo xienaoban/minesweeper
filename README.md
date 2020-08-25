@@ -43,11 +43,9 @@ java -jar Minesweeper.jar test --times 100 --rule XP
 ## 当前版本胜率
 
 ```
-private static final int MAX_NEXT_SITUATION_NUM = 20;
+private static final int MAX_NEXT_SITUATION_NUM = 15;
 private static final int MAX_WIN_RATE_NUM = 12;
-TEMP: 第 104022 局: 负   探索程度:  97%   当前胜率: 39.8127%   平均胜局耗时: 56毫秒   平均每局耗时: 43毫秒
-
-运行局数: 250000   胜率: 39.68%   运行总耗时: 10351秒   平均胜局耗时: 54毫秒   平均每局耗时: 41毫秒
+运行局数: 500000   胜率: 39.68%   运行总耗时: 21275秒   平均胜局耗时: 57毫秒   平均每局耗时: 42毫秒
 探索程度统计:
 A 占比
 |

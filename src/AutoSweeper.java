@@ -17,7 +17,7 @@ public class AutoSweeper {
 
     // 下一步可确定的平均格子算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
     // 该策略只是一种估算, 估算的格子越多偏差也可能越大. 所以该数字不是越大越好, 12 ~ 18 之间或许比较合理.
-    private static final int MAX_NEXT_SITUATION_NUM = 14;
+    private static final int MAX_NEXT_SITUATION_NUM = 15;
 
     // 时间复杂度爆炸的胜率算法最大支持的计算量 (待测格子数小于等于该数字则投入该算法运行)
     // 该策略精确计算点击每个格子的胜率, 所以该数字越大胜率越高. 但该数字指数级影响 AI 的总耗时.

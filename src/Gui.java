@@ -464,7 +464,7 @@ public class Gui extends JFrame {
                 MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
 
                 // 设置格子边长
-                final int XIE_NAO_BAN_CELL_LENGTH = 40 + 2;
+                final int XIE_NAO_BAN_CELL_LENGTH = 34 + 2;
                 if (cellLength != XIE_NAO_BAN_CELL_LENGTH) {
                     cellLength = XIE_NAO_BAN_CELL_LENGTH;
                     setFrame();

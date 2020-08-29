@@ -2,17 +2,6 @@ import java.util.Scanner;
 
 public class Main {
     public static final String VERSION = "v1.0-release";
-    private static final boolean T = true, F = false;
-
-    // 能够导致 AI 遍历连通分量时卡死的典型案例
-    public static final boolean[][] badMineBoardExample = {
-        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, F, F},
-        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F},
-        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
-        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F},
-        {F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F, T, F},
-        {F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, F, F, T, F, T, F}
-    };
 
     // 一些在 testAI 及其创建的线程中用到的变量
     private static long time;
@@ -168,26 +157,24 @@ public class Main {
         int winCnt = 0;
         int[] exploreRateView = new int[11];
         // 如果遇到连通分量特别长导致运算时间很久, 每隔2秒输出一次
-        Thread th = new Thread() {
-            public void run() {
-                try {
-                    while (true) {
-                        Thread.sleep(1000);
-                        if (game == null) break;
-                        long diff = System.currentTimeMillis() - time;
-                        if (diff > 6000) {
-                            System.out.println();
-                            System.out.println("第 " + round + " 局耗时超预期, 可能是因为连通分量太长. 当前步数: "
-                                    + game.getStep() + ". 当前连通分量: ");
-                            AutoSweeper.printConnectedComponent(AutoSweeper.findAllConnectedComponents(game).getValue());
-                            time = System.currentTimeMillis();
-                        }
+        Thread th = new Thread(() -> {
+            try {
+                while (true) {
+                    Thread.sleep(1000);
+                    if (game == null) break;
+                    long diff = System.currentTimeMillis() - time;
+                    if (diff > 6000) {
+                        System.out.println();
+                        System.out.println("第 " + round + " 局耗时超预期, 可能是因为连通分量太长. 当前步数: "
+                                + game.getStep() + ". 当前连通分量: ");
+                        AutoSweeper.printConnectedComponent(AutoSweeper.findAllConnectedComponents(game).getValue());
+                        time = System.currentTimeMillis();
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        };
+        });
         th.start();
         long startTime = System.currentTimeMillis();
         long printTime = startTime;

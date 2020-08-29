@@ -201,6 +201,14 @@ public class Gui extends JFrame {
                 advancedMenuItem.setSelected(false);
                 customMenuItem.setSelected(false);
                 xpMenuItem.setSelected(true);
+
+                cheat = showMine = false;
+                cheatMenuItem.setSelected(false);
+                undoMenuItem.setEnabled(cheat);
+                mineMenuItem.setEnabled(cheat);
+                loadMineMenuItem.setEnabled(cheat);
+                saveMineMenuItem.setEnabled(cheat);
+
                 initGame(game);
                 setFrameAfterOperation();
             }
@@ -241,6 +249,11 @@ public class Gui extends JFrame {
 
         cheatMenuItem.setAccelerator(KeyStroke.getKeyStroke(VK_J, CTRL_MASK));
         cheatMenuItem.addActionListener(e -> {
+            if (xpMenuItem.isSelected()) {
+                cheatMenuItem.setSelected(false);
+                JOptionPane.showMessageDialog(faceCanvas, "套娃扫雷模式开不了作弊。", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             int res = JOptionPane.showConfirmDialog(faceCanvas, "开启/关闭作弊会新开一局，确认继续吗？", "作弊",JOptionPane.YES_NO_OPTION);
             if (res != 0) return;
             cheat = cheatMenuItem.isSelected();
@@ -445,14 +458,25 @@ public class Gui extends JFrame {
                 if (e.getKeyChar() != 'x') return;
                 if (xXxXx.incrementAndGet() < 4) return;
                 xXxXx.set(0);
+
+                // 不要问号
                 allowQuestionMenuItem.setSelected(false);
                 MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
+
+                // 设置格子边长
                 final int XIE_NAO_BAN_CELL_LENGTH = 40 + 2;
                 if (cellLength != XIE_NAO_BAN_CELL_LENGTH) {
                     cellLength = XIE_NAO_BAN_CELL_LENGTH;
                     setFrame();
                     canvas.requestRepaintAll(false);
                 }
+
+                // 设置 win7 的规则
+                gameRule = MineSweeper.GAME_RULE_WIN_7;
+                gameRuleWinXpMenuItem.setSelected(false);
+                gameRuleWin7MenuItem.setSelected(true);
+
+                // 设置高级局
                 if (!advancedMenuItem.isSelected()) {
                     beginnerMenuItem.setSelected(false);
                     intermediateMenuItem.setSelected(false);
@@ -897,7 +921,6 @@ public class Gui extends JFrame {
     }
 
     private static class TimeThread extends Thread {
-        private Date startTime, currentTime;
         private final JLabel targetLabel;
 
         TimeThread(JLabel label, long initTime) {
@@ -912,11 +935,11 @@ public class Gui extends JFrame {
 
         @Override
         public void run() {
-            this.startTime = this.currentTime = new Date();
+            Date startTime = new Date();
             while (!this.isInterrupted()) {
                 try {
-                    this.currentTime = new Date();
-                    long diff = (this.currentTime.getTime() - startTime.getTime());
+                    Date currentTime = new Date();
+                    long diff = (currentTime.getTime() - startTime.getTime());
                     this.setLabel(diff / 1000);
                     Thread.sleep(1000 - (diff % 1000));
                 } catch (InterruptedException e) { break; }

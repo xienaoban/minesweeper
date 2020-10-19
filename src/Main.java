@@ -1,7 +1,7 @@
 import java.util.Scanner;
 
 public class Main {
-    public static final String VERSION = "v1.0-release";
+    public static final String VERSION = "v1.1-release";
 
     // 一些在 testAI 及其创建的线程中用到的变量
     private static long time;

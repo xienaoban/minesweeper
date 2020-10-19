@@ -43,19 +43,24 @@ public class Gui extends JFrame {
     private String lastMineBoardDirectory = ".";
 
     public Gui() {
+        this.cellLength = 30;
+        this.showMine = false;
+        this.cheat = false;
+        this.gameRule = MineSweeper.GAME_RULE_WIN_XP;
+        this.initFrame();
+        this.initMenu();
+        this.initGame(MineSweeper.DIFFICULTY_BEGINNER);
+        this.setVisible(true);
+        infoBorderCanvas.requestFocusInWindow();
+    }
+
+    private void initFrame() {
         this.setTitle("Minesweeper");
         this.setLayout(new BorderLayout());
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.getContentPane().setLayout(null);
         this.getContentPane().setBackground(new Color(192, 192, 192));
-        this.cellLength = 30;
-        this.showMine = false;
-        this.initMenu();
-        this.cheat = false;
-        this.gameRule = MineSweeper.GAME_RULE_WIN_XP;
-        this.initGame(MineSweeper.DIFFICULTY_BEGINNER);
-        this.setVisible(true);
     }
 
     private void initMenu() {
@@ -343,7 +348,7 @@ public class Gui extends JFrame {
             int[][] cc = probResult.ccGraph;
             double[][] prob = probResult.probGraph;
             for (int i = 0; i < prob.length; ++i)  for (int j = 0; j < prob[0].length; ++j) {
-                prob[i][j] = 1.0 - prob[i][j];
+                prob[i][j] = Math.abs(1.0 - prob[i][j]);
             }
             canvas.setConnectedComponentsAndProbability(cc, prob);
         }).start());
@@ -464,7 +469,7 @@ public class Gui extends JFrame {
                 MineSweeper.setAllowQuestionMark(allowQuestionMenuItem.isSelected());
 
                 // 设置格子边长
-                final int XIE_NAO_BAN_CELL_LENGTH = 34 + 2;
+                final int XIE_NAO_BAN_CELL_LENGTH = 42 + 2;
                 if (cellLength != XIE_NAO_BAN_CELL_LENGTH) {
                     cellLength = XIE_NAO_BAN_CELL_LENGTH;
                     setFrame();
@@ -485,6 +490,7 @@ public class Gui extends JFrame {
                     xpMenuItem.setSelected(false);
                     initGame(MineSweeper.DIFFICULTY_EXPERT);
                 }
+                setLocationRelativeTo(null);
             }
         });
     }
@@ -631,6 +637,9 @@ public class Gui extends JFrame {
                 around.add(new Point(this.mouseX, this.mouseY));
             }
             if (!this.mouseBoth && this.mouseLeft && game.isPointInRange(this.mouseX, this.mouseY)) {
+                if (game.getPlayerBoard(this.mouseX, this.mouseY) < 9) { // 左键数字格子支持 check 了
+                    around = game.getAround(this.mouseX, this.mouseY);
+                }
                 around.add(new Point(this.mouseX, this.mouseY));
             }
             for (Point p : around) {
@@ -813,7 +822,10 @@ public class Gui extends JFrame {
                     if (this.mouseRight) game.check(this.mouseX, this.mouseY);
                 }
                 else if (!this.mouseRight) {
-                    game.dig(this.mouseX, this.mouseY);
+                    if (game.getPlayerBoard(this.mouseX, this.mouseY) < 9) { // 左键数字格子支持 check 了
+                        game.check(this.mouseX, this.mouseY);
+                    }
+                    else game.dig(this.mouseX, this.mouseY); // 左键未知格子为挖掘
                     if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                         timeThread.start();
                 }

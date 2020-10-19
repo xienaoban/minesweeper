@@ -1,3 +1,7 @@
+# Java 扫雷 (友好的 GUI + 平民的 AI)
+
+![头图](figure.png)
+
 ## 指令
 
 以下举些常用指令的例子 (Powershell、CMD、Bash 通用), 更多信息请输入

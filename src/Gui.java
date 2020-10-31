@@ -642,6 +642,11 @@ public class Gui extends JFrame {
                 }
                 around.add(new Point(this.mouseX, this.mouseY));
             }
+            else if (!this.mouseBoth && this.mouseRight && game.isPointInRange(this.mouseX, this.mouseY)) {
+                if (game.getPlayerBoard(this.mouseX, this.mouseY) < 9) { // 右键数字格子支持 check 了
+                    around = game.getAround(this.mouseX, this.mouseY);
+                }
+            }
             for (Point p : around) {
                 this.drawCell(p.x, p.y, game.getPlayerBoard(p.x, p.y, true),true, g);
                 this.lastPlayerBoard[p.x][p.y] = 0x7fffffff;
@@ -836,8 +841,13 @@ public class Gui extends JFrame {
                     if (this.mouseLeft) game.check(this.mouseX, this.mouseY);
                 }
                 else if (!this.mouseLeft) {
-                    game.mark(this.mouseX, this.mouseY);
-                    setMineLabel();
+                    if (game.getPlayerBoard(this.mouseX, this.mouseY) < 9) { // 右键数字格子支持 check 了
+                        game.check(this.mouseX, this.mouseY);
+                    }
+                    else {
+                        game.mark(this.mouseX, this.mouseY);
+                        setMineLabel();
+                    }
                     if (!timeThread.isAlive() && game.getGameState() == MineSweeper.PROCESS && !cheat)
                         timeThread.start();
                 }

@@ -7,6 +7,11 @@ package xjf.util;
 
 import java.util.Objects;
 
+/**
+ * 与 javafx.util.Pair 功能一致的元组类.
+ * @param <K> Key
+ * @param <V> Value
+ */
 public class Pair<K, V> {
 
     private final K key;

@@ -2,8 +2,11 @@ package xjf;
 
 import java.util.Scanner;
 
+/**
+ * 程序入口, 同时也实现了命令行支持.
+ */
 public class Main {
-    public static final String VERSION = "v1.1-release";
+    public static final String VERSION = "v1.2.1-release";
 
     // 一些在 testAI 及其创建的线程中用到的变量
     private static long time;

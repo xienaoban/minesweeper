@@ -7,6 +7,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * 从屏幕上找取 Windows XP 的原版扫雷程序窗口, 通过操纵原版扫雷来实现扫雷玩法.
+ */
 public class WinXpSweeper extends MineSweeper {
     public static final int GAME_RULE_REAL_WIN_XP = 20200728;
 

@@ -5,6 +5,9 @@ import java.io.*;
 import java.util.*;
 import java.util.List;
 
+/**
+ * 实现整个扫雷游戏玩法.
+ */
 public class MineSweeper {
     // 游戏状态
     public static final int PROCESS = 0;
@@ -267,7 +270,8 @@ public class MineSweeper {
      */
     public void saveGameToFile(File file) throws IOException {
         if (!cheat) return;
-        file.createNewFile();
+        boolean isFileThere = file.exists() || file.createNewFile();
+        if (!isFileThere) throw new FileNotFoundException(file.getAbsolutePath());
         FileWriter fileWriter = new FileWriter(file);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
         for (int i = 0; i < this.row; ++i) {

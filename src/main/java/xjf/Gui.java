@@ -1,7 +1,6 @@
 /*
- * 将 MineSweeper 类呈现在 GUI 上.
  * 由于 GUI 不是很重要, 所以一开始没有重视, 写的比较随意, 但涉及的逻辑却随时间越来越复杂, 于是乎这坨代码逐渐形成了一座屎山.
- * 尤其是 负责展示棋盘的内部类 BoardCanvas, 一直想重构但是涉及的逻辑比较烦, 且远没有三个 Sweeper 类重要, 就一直没改.
+ * 尤其是负责展示棋盘的内部类 BoardCanvas, 一直想重构但是涉及的逻辑比较烦, 且远没有三个 Sweeper 类重要, 就一直没改.
  * 于是连注释都不想写了, 估计半年后包括我在内没有人看得懂了.
  */
 package xjf;
@@ -19,6 +18,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Swing 编写的 GUI.
+ */
 public class Gui extends JFrame {
 
     private static final String FACE_NORMAL = "\uD83D\uDE42";

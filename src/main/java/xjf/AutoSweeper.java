@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.List;
 
+/**
+ * 自动扫雷 AI. 工具类, 无需初始化.
+ */
 public class AutoSweeper {
     // AI 给出的三种判断
     public static final int UNKNOWN = 0;
@@ -868,6 +871,7 @@ public class AutoSweeper {
      * @param y 目标格子 y 坐标
      * @return 是否合法
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean isUncoveredCellLegal(MineSweeper game, int[][] board, int x, int y) {
         if (board[x][y] > 8) return false;
         List<Point> list = game.getAround(x, y);
@@ -960,7 +964,7 @@ public class AutoSweeper {
         for (int i = 0; i < prob[0].length; ++i) System.out.print("-------");
         System.out.println();
         for (double[] row : prob) {
-            for (double v : row) System.out.print(String.format(" %.3f ", v));
+            for (double v : row) System.out.printf(" %.3f ", v);
             System.out.println();
         }
         for (int i = 0; i < prob[0].length; ++i) System.out.print("-------");

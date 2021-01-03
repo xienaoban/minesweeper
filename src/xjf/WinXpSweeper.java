@@ -1,3 +1,5 @@
+package xjf;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.InputEvent;

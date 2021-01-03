@@ -1,3 +1,5 @@
+package xjf;
+
 import java.util.Scanner;
 
 public class Main {

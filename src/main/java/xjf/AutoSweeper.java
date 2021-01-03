@@ -1,6 +1,6 @@
 package xjf;
 
-import javafx.util.Pair;
+import xjf.util.Pair;
 
 import java.awt.*;
 import java.math.BigDecimal;

@@ -6,7 +6,7 @@
  */
 package xjf;
 
-import javafx.util.Pair;
+import xjf.util.Pair;
 
 import static java.awt.event.InputEvent.*;
 import static java.awt.event.KeyEvent.*;

@@ -2,6 +2,15 @@
 
 ![头图](figure.png)
 
+> 详情可参考我的博客:
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (上) - xienaoban.github.io](https://xienaoban.github.io/posts/25814.html)
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (下) - xienaoban.github.io](https://xienaoban.github.io/posts/62679.html)
+> 想评论可以去 CSDN, 博客已同步发表:
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (上) - CSDN - XieNaoban](https://blog.csdn.net/XieNaoban/article/details/112424024)
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (下) - CSDN - XieNaoban](https://blog.csdn.net/XieNaoban/article/details/112424039)
+
+(喜欢的话 Star 一下呀 `（づ￣3￣）づ╭❤～`)
+
 ## 指令
 
 以下举些常用指令的例子 (Powershell、CMD、Bash 通用), 更多信息请输入

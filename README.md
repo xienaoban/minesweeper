@@ -10,9 +10,9 @@
 > 
 > 想评论可以去 CSDN, 博客已同步发表:
 > 
-> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (上) - CSDN - XieNaoban](https://blog.csdn.net/XieNaoban/article/details/112424024)
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (上) - CSDN - XieNaoban](https://blog.csdn.net/xienaoban/article/details/112424609)
 > 
-> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (下) - CSDN - XieNaoban](https://blog.csdn.net/XieNaoban/article/details/112424039)
+> [Java 实现扫雷与高胜率低耗时自动扫雷 AI (下) - CSDN - XieNaoban](https://blog.csdn.net/xienaoban/article/details/112424633)
 
 (喜欢的话 Star 一下呀 `（づ￣3￣）づ╭❤～`)
 
